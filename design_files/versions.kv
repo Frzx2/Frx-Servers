@@ -1,0 +1,45 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+
+<Versions>:
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.2, 0.2, 0.2, 1
+        padding: dp(10)
+        spacing: dp(10)
+
+        MDLabel:
+            text: "Minecraft Server Versions"
+            halign: "center"
+            font_style: "H4"
+            theme_text_color: "Custom"
+            text_color: 0.4, 0.8, 0.2, 1
+            size_hint_y: None
+            height: self.texture_size[1] + dp(20)
+
+        ScrollView:
+            MDList:
+                id: server_type_list
+                size_hint_y: None
+                height: self.minimum_height
+
+        MDSeparator:
+            height: dp(1)
+            color: 0.4, 0.4, 0.4, 1
+
+        MDTextField:
+            id: search_field
+            hint_text: "Search Version..."
+            on_text: root.filter_versions(self.text)
+
+        ScrollView:
+            MDList:
+                id: version_list
+
+        MDRaisedButton:
+            text: "Download & Start Server"
+            size_hint: None, None
+            size: dp(200), dp(50)
+            pos_hint: {"center_x": 0.5}
+            md_bg_color: 0.4, 0.8, 0.2, 1
+            on_release: root.download_selected()

@@ -1,0 +1,89 @@
+<Finish_Server>:
+    name: "finish_server"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "20dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1   # dark background
+
+        Widget:  # pushes main card to vertical center
+
+        MDCard:
+            id: main_card
+            orientation: "vertical"
+            size_hint: 0.85, None
+            height: self.minimum_height
+            padding: "30dp"
+            spacing: "25dp"
+            pos_hint: {"center_x": 0.5}
+            radius: [25, 25, 25, 25]
+            md_bg_color: 0.16, 0.16, 0.18, 1   # dark grey card
+            elevation: 10
+
+            MDLabel:
+                id: ready
+                text: "Press Start to Create the Server"
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 0.6, 0.8, 1, 1   # bluish accent
+                font_style: "H5"
+                size_hint_y: None
+                height: self.texture_size[1]
+
+            MDSpinner:
+                id: server_spinner
+                size_hint: None, None
+                size: "80dp", "80dp"
+                active: False
+                pos_hint: {"center_x": 0.5}
+                color: 0.2, 0.6, 1, 1   # blue spinner glow
+
+            MDLabel:
+                id: error_label
+                text: ""
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 0.4, 0.4, 1   # red for error
+                font_style: "Subtitle1"
+                size_hint_y: None
+                height: self.texture_size[1]
+
+        # Button Card below main card
+        MDCard:
+            orientation: "horizontal"
+            size_hint: 0.6, None
+            height: "60dp"
+            padding: "10dp"
+            spacing: "20dp"
+            pos_hint: {"center_x": 0.5}
+            radius: [20, 20, 20, 20]
+            md_bg_color: 0.16, 0.16, 0.18, 1
+            elevation: 8
+
+            MDRaisedButton:
+                text: "Back"
+                md_bg_color: 0.25, 0.25, 0.25, 1
+                text_color: 1, 1, 1, 1
+                elevation: 6
+                on_release: root.back()
+
+            MDRaisedButton:
+                id: start
+                text: "Start"
+                md_bg_color: 0.2, 0.6, 1, 1   # blue highlight
+                text_color: 1, 1, 1, 1
+                elevation: 8
+                size_hint_x: 1.5  # bigger than others
+                on_release: root.finish()
+
+            MDRaisedButton:
+                text: "Next"
+                id: next_btn
+                md_bg_color: 0.2, 0.6, 1, 1
+                text_color: 1, 1, 1, 1
+                elevation: 8
+                on_release: root.next()
+                disabled: True
+
+        Widget:  # pushes everything to vertical center

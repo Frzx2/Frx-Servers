@@ -1,0 +1,131 @@
+<Server_Players>:
+    name: "players"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "10dp"
+        padding: "10dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1
+
+        # --- Header ---
+        MDLabel:
+            text: "Players"
+            halign: "center"
+            font_style: "H5"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint_y: None
+            height: "40dp"
+
+        # --- Actions + Online Counter ---
+        MDBoxLayout:
+            size_hint_y: None
+            height: "48dp"
+            spacing: "8dp"
+
+            MDRaisedButton:
+                text: "Whitelist"
+                on_release: root.open_whitelist()
+
+            MDRaisedButton:
+                text: "Banned"
+                on_release: root.open_banned()
+
+            MDRaisedButton:
+                text: "Ops"
+                on_release: root.open_ops()
+
+            Widget:
+
+            MDLabel:
+                id: online_players
+                text: "Online: [0/0]"
+                halign: "right"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                size_hint_x: None
+                width: "130dp"
+
+        # --- Search Field ---
+        MDTextField:
+            id: search_field
+            hint_text: "Search Player..."
+            mode: "rectangle"
+            size_hint_y: None
+            height: "40dp"
+            on_text: root.on_search_text(self.text)
+
+        # --- Scrollable Player Grid ---
+        ScrollView:
+            MDGridLayout:
+                id: scroll_box
+                cols: 2
+                adaptive_height: True
+                spacing: "10dp"
+                padding: "5dp"
+
+        # --- Bottom Navigation Menu ---
+        MDCard:
+            id: bottom_menu_card
+            orientation: "horizontal"
+            size_hint_y: None
+            height: "60dp"
+            padding: "10dp"
+            spacing: "20dp"
+            md_bg_color: 0.12, 0.12, 0.15, 1
+            radius: [20, 20, 0, 0]
+            elevation: 6
+
+            MDLabel:
+                id: tab_status
+                text: "Server Status"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("status")
+
+            MDLabel:
+                id: tab_players
+                text: "Players"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("players")
+
+            MDLabel:
+                id: tab_console
+                text: "Console"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("console")
+
+            MDLabel:
+                id: tab_logs
+                text: "Logs"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("server_file")
+
+            MDLabel:
+                id: tab_props
+                text: "Properties"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("server_properties")
+
+            MDLabel:
+                id: tab_home
+                text: "Home"
+                halign: "center"
+                font_style: "Button"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("homescreen")

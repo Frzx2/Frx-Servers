@@ -1,0 +1,67 @@
+<Home_Screen>:
+    name: "homescreen"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.08, 0.08, 0.1, 1  # dark background
+
+        # Top Title Bar
+        MDTopAppBar:
+            title: "Minecraft Server Manager"
+            elevation: 4
+            md_bg_color: 0.12, 0.12, 0.15, 1
+            title_color: 0.8, 0.9, 1, 1
+            left_action_items: [["server", lambda x: None]]
+            right_action_items: [["refresh", lambda x: root.load_servers()]]
+
+        # Controls Row: Search + Create + Config
+        MDBoxLayout:
+            orientation: "horizontal"
+            padding: "12dp"
+            spacing: "12dp"
+            size_hint_y: None
+            height: "70dp"
+            md_bg_color: 0.1, 0.1, 0.12, 1
+            radius: [0, 0, 20, 20]
+
+            MDTextField:
+                id: search_field
+                hint_text: "Search servers..."
+                mode: "rectangle"
+                size_hint_x: 0.5
+
+                text_color_normal: 1, 1, 1, 1
+                text_color_focus: 1, 1, 1, 1
+
+                hint_text_color_normal: 0.8, 0.8, 0.8, 1   # white/grey hint when idle
+                hint_text_color_focus: 1, 1, 1, 1          # pure white hint when focused
+
+                line_color_normal: 0.3, 0.3, 0.3, 1        # subtle grey border when idle
+                line_color_focus: 0.2, 0.6, 0.9, 1         # blue border only when focused
+
+                on_text: root.filter_servers(self.text)
+
+            MDRaisedButton:
+                text: "Create Server"
+                md_bg_color: 0.2, 0.6, 0.9, 1
+                text_color: 1, 1, 1, 1
+                on_release: root.create_server()
+
+            MDRaisedButton:
+                text: " Configuration"
+                md_bg_color: 0.3, 0.3, 0.3, 1
+                text_color: 1, 1, 1, 1
+                on_release: root.configuration()
+
+        # Main content - Server list
+        ScrollView:
+            bar_width: "8dp"
+            scroll_type: ["bars", "content"]
+            bar_color: 0.2, 0.6, 0.9, 0.9
+            bar_inactive_color: 0.4, 0.4, 0.4, 0.5
+            MDBoxLayout:
+                id: server_container
+                orientation: "vertical"
+                adaptive_height: True
+                padding: "12dp"
+                spacing: "12dp"

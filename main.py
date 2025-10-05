@@ -2519,6 +2519,11 @@ class Server_Console(MDScreen):
     # -------- Logs --------
     def refresh_logs(self):
         """Load last MAX_LOG_LINES from the log file into the console UI with colors."""
+        if not self.log_file:
+            self.ids.server_log.text = "[color=FFFFFF][No log file specified][/color]"
+            self.ids.server_log.texture_update()
+            self.ids.server_log.height = self.ids.server_log.texture_size[1]
+            return
 
         if not self.log_file or not os.path.exists(self.log_file):
             self.ids.server_log.text = "[color=FFFFFF][No log file found][/color]"

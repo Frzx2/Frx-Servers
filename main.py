@@ -1330,7 +1330,6 @@ class Configuration(MDScreen):
         Load existing configuration values when entering this screen.
         """
         config = self.load_config()
-
         self.ids.java_path.text = config.get("java_path", "")
         self.ids.server_location.text = config.get("server_location", "")
         self.dialog = None

@@ -13,3 +13,4 @@ __pycache__/
 # Test scripts/folders you don't want
 test.py
 Testing/
+.gitignore

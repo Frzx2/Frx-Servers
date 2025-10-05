@@ -1671,7 +1671,10 @@ class Server_Status(MDScreen):
         self.ram_label.children[0].text = f"RAM: {ram:.1f}%"
 
     def load_server(self, path, server_name):
-        """Open server screen, load configs, and prepare log file."""
+        """
+        Open server screen, load configs, and prepare log file.
+        Fully Linux and Windows compatible.
+        """
         if path:
             self.server_path = path
         if server_name:

@@ -3767,7 +3767,40 @@ class Server_File(MDScreen):
         )
 
     def import_files_dialog(self):
-        self.log_message("Import function not implemented.")
+        """Open a native file dialog to select files and copy them into the current folder."""
+        try:
+            # Hide the main Tk window
+            root = tk.Tk()
+            root.withdraw()
+
+            # Open file dialog (allow multiple selection, show all files)
+            paths = filedialog.askopenfilenames(title="Select files to import", filetypes=[("All files", "*.*")])
+            if not paths:
+                self.log_message("No files selected.", error=False)
+                return
+
+            for src_path in paths:
+                if not os.path.exists(src_path):
+                    continue
+                base_name = os.path.basename(src_path)
+                dest_path = os.path.join(self.current_path, base_name)
+                counter = 1
+                while os.path.exists(dest_path):
+                    name, ext = os.path.splitext(base_name)
+                    dest_path = os.path.join(self.current_path, f"{name}_copy_{counter}{ext}")
+                    counter += 1
+                try:
+                    shutil.copy2(src_path, dest_path)
+                except PermissionError:
+                    self.log_message(f"Permission denied: {base_name}", error=True)
+                except Exception as e:
+                    self.log_message(f"Error importing {base_name}: {e}", error=True)
+
+            self.load_files()
+            self.log_message(f"Imported {len(paths)} file(s).", error=False)
+
+        except Exception as e:
+            self.log_message(f"File import canceled or failed: {e}", error=True)
 
     # ------------------------
     # Helpers

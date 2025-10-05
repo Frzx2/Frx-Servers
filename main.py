@@ -2525,7 +2525,9 @@ class Server_Console(MDScreen):
             self.ids.server_log.height = self.ids.server_log.texture_size[1]
             return
 
-        if not self.log_file or not os.path.exists(self.log_file):
+        log_file = os.path.normpath(self.log_file)
+
+        if not os.path.exists(log_file):
             self.ids.server_log.text = "[color=FFFFFF][No log file found][/color]"
             self.ids.server_log.texture_update()
             self.ids.server_log.height = self.ids.server_log.texture_size[1]

@@ -1326,7 +1326,9 @@ class Finish_Server(MDScreen):
 
 class Configuration(MDScreen):
     def on_pre_enter(self):
-        """Load existing config values when entering screen."""
+        """
+        Load existing configuration values when entering this screen.
+        """
         config = self.load_config()
 
         self.ids.java_path.text = config.get("java_path", "")

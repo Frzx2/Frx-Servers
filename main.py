@@ -265,7 +265,7 @@ class Home_Screen(MDScreen):
                 # Only reload if file changed
                 self._update_cache(server_info_path)
                 data = self.server_cache.get(server_info_path, {})
-                card.players_lbl.text = f"Players: {data.get('server_players','0/0')}"
+                card.players_lbl.text = f"{data.get('server_players','0/0')}"
                 card.tps_lbl.text = f"TPS: {data.get('server_tps','N/A')}"
                 card.status_lbl.text = f"Status: {data.get('server_status','Offline')}"
 

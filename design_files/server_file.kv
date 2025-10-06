@@ -22,11 +22,20 @@
         md_bg_color: 0.1, 0.1, 0.12, 1  # dark overall background
 
         # Top App Bar
-        MDTopAppBar:
-            title: "Server File Manager"
-            elevation: 6
+        MDBoxLayout:
+            size_hint_y: None
+            height: "56dp"
             md_bg_color: 0.1, 0.1, 0.12, 1
-            specific_text_color: 1, 1, 1, 1
+            padding: "12dp"
+            spacing: "10dp"
+
+            MDLabel:
+                text: "Server File Manager"
+                halign: "center"
+                valign: "middle"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                font_style: "H6"
 
         MDBoxLayout:
             orientation: "horizontal"

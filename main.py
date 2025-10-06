@@ -1,118 +1,72 @@
-from docutils.nodes import status
-
-"test waoh"
-from kivy.app import App
-from kivy.uix.button import Button
+# ─── Standard Library ─────────────────────────────
 import os
-from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition, SwapTransition, SlideTransition, \
-    WipeTransition
-from kivy.core.window import Window
-import json
-from mcrcon import MCRcon
-import hashlib
 import re
-from kivy.properties import ObjectProperty
-from kivy.uix.behaviors import FocusBehavior, ButtonBehavior
-from mcstatus import MCServer
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from kivy.uix.recycleboxlayout import RecycleBoxLayout
-import os
-import shutil
-import webbrowser
 import sys
-from kivy.properties import StringProperty, ListProperty, BooleanProperty
-from kivy.core.window import Window
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.button import MDFlatButton, MDRaisedButton
-from kivymd.uix.textfield import MDTextField
-from kivy.uix.textinput import TextInput
-from ctypes import windll, create_unicode_buffer
+import json
+import time
+import threading
+import subprocess
 import shutil
-from kivy.uix.popup import Popup
+import datetime
+import platform as pf
 from pathlib import Path
-from kivy.uix.recycleview.views import RecycleDataViewBehavior
-from functools import partial
-from ctypes import windll, create_unicode_buffer
+from threading import Thread
+from tkinter import filedialog
+import tkinter as tk
+import webbrowser
+
+# ─── External Libraries ───────────────────────────
+import psutil
+import requests
+from mcstatus import JavaServer
+from kivy_garden.graph import Graph, MeshLinePlot
+
+# ─── Kivy Core ────────────────────────────────────
+from kivy.app import App
+from kivy.lang import Builder
+from kivy.clock import Clock
+from kivy.clock import mainthread
 from kivy.core.window import Window
-from kivy.properties import ObjectProperty, StringProperty, ListProperty, BooleanProperty
-from functools import partial
-from kivymd.uix.snackbar import Snackbar
+from kivy.core.clipboard import Clipboard
+from kivy.graphics import Color, Ellipse, Rectangle
+from kivy.metrics import dp
+from kivy.properties import (
+    ObjectProperty,
+    StringProperty,
+    ListProperty,
+    BooleanProperty,
+    NumericProperty,
+)
+from kivy.utils import platform
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.filechooser import FileChooserListView
+from kivy.uix.screenmanager import ScreenManager, NoTransition
+from kivymd.uix.textfield import MDTextField
+
+# ─── KivyMD ───────────────────────────────────────
+from kivymd.app import MDApp
+from kivymd.uix.screen import MDScreen
+from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.card import MDCard
+from kivymd.uix.label import MDLabel
+from kivymd.uix.list import OneLineAvatarIconListItem, OneLineListItem
+from kivymd.uix.dialog import MDDialog
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.selectioncontrol import MDCheckbox
-from kivy.metrics import dp
-from kivymd.uix.label import MDLabel
-import random
 from kivymd.uix.scrollview import MDScrollView
-import secrets
-from kivy.uix.image import AsyncImage
-from threading import  Thread
-from kivy.uix.widget import Widget
-from kivy.graphics import Color, Ellipse, Rectangle
-import configparser
-from kivy.utils import platform
-import psutil
-from kivymd.uix.dialog import MDDialog
-import base64
-from kivy.clock import Clock
-from kivy.uix.boxlayout import BoxLayout
-from kivy.core.clipboard import Clipboard
-from kivymd.app import MDApp
-from kivymd.uix.label import MDLabel
-from kivy_garden.graph import Graph, MeshLinePlot
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.button import MDRaisedButton,MDFlatButton
-from kivymd.uix.boxlayout import MDBoxLayout
-import time
-import threading
-from kivy.uix.screenmanager import ScreenManager, NoTransition
-from setup import Setup
-from kivy.uix.scrollview import ScrollView
-from kivy.lang import  Builder
 from kivymd.uix.fitimage import FitImage
 from kivymd.uix.filemanager import MDFileManager
-import requests
-from io import BytesIO
-from setup import  Java_detection
-from setup import Server_Folder
-from kivymd.uix.card import MDCard
-import shutil
-import requests
-from kivymd.uix.list import OneLineListItem
-from threading import Thread
-from kivy.clock import mainthread
 from kivymd.uix.spinner import MDSpinner
-import tkinter as tk
-from tkinter import filedialog
-import subprocess
-from kivy.uix.label import Label
-from kivy.properties import NumericProperty
-from mcstatus import JavaServer
-import datetime
-
-
-import os, json
-from kivy.clock import Clock
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.card import MDCard
-from kivymd.toast import toast
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.label import MDLabel
-from kivymd.uix.button import MDRaisedButton
-from kivy.uix.filechooser import FileChooserListView
-
-
-from kivy.clock import Clock
-from kivymd.uix.screen import MDScreen
-from kivymd.uix.button import MDRaisedButton
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
-import os
-import json
-import threading
-import time
+from kivymd.icon_definitions import md_icons
+# ─── Project Modules ──────────────────────────────
+from setup import Setup
+from setup import Java_detection
+from setup import Server_Folder
 
 CONFIG_PATH = "config.json"
 UPDATE_INTERVAL = 5  # seconds; configurable interval for status updates
@@ -1338,8 +1292,11 @@ class Configuration(MDScreen):
     # JSON CONFIG HELPERS
     # ---------------------------
     def load_config(self):
-        """Safely load JSON config."""
-        config_path = "config.json"
+        """
+        Safely load configuration from 'config.json'.
+        Returns an empty dict if file doesn't exist or is invalid.
+        """
+        config_path = os.path.join(os.getcwd(), "config.json")
         if os.path.exists(config_path) and os.path.getsize(config_path) > 0:
             try:
                 with open(config_path, "r") as f:
@@ -1348,24 +1305,38 @@ class Configuration(MDScreen):
                 return {}
         return {}
 
-    def save_config(self, updates):
-        """Update and save config.json with new values."""
+    def save_config(self, updates: dict):
+        """
+        Update and save configuration to 'config.json'.
+        """
         config = self.load_config()
         config.update(updates)
-        with open("config.json", "w") as f:
+        with open(os.path.join(os.getcwd(), "config.json"), "w") as f:
             json.dump(config, f, indent=4)
 
     # ---------------------------
     # JAVA PATH MANAGEMENT
     # ---------------------------
     def edit_java_path(self):
-        """Open file dialog to select java.exe."""
+        """
+        Open a file dialog for the user to select the Java executable.
+        Handles cross-platform paths and validations.
+        """
         root = tk.Tk()
         root.withdraw()
+
+        # Set initial directory based on OS
+        if os.name == "nt":  # Windows
+            initial_dir = "C:\\Program Files\\Java"
+            filetypes = [("Java Executable", "java.exe")]
+        else:  # Linux/macOS
+            initial_dir = "/usr/bin"
+            filetypes = [("Java Executable", "java")]
+
         file_path = filedialog.askopenfilename(
             title="Select Java executable",
-            filetypes=[("Java Executable", "java.exe")],
-            initialdir="C:\\Program Files\\Java"
+            filetypes=filetypes,
+            initialdir=initial_dir
         )
         root.destroy()
 
@@ -1381,21 +1352,29 @@ class Configuration(MDScreen):
         self.ids.java_path.text = file_path
         self.ids.status_label.text = "✅ Java path updated"
 
-    def validate_java_path(self, path):
-        """Check if given path is a valid Java executable."""
-        # Case 1: direct "java" in PATH
-        if path.strip().lower() == "java":
+    def validate_java_path(self, path: str) -> bool:
+        """
+        Validate the given Java path.
+        Supports:
+        - Direct 'java' in PATH
+        - Full path to executable
+        - Directory path containing java/bin/java
+        """
+        path = path.strip()
+
+        # Case 1: 'java' command in PATH
+        if path.lower() == "java":
             try:
                 result = subprocess.run([path, "-version"], capture_output=True, text=True)
                 return result.returncode == 0
             except Exception:
                 return False
 
-        # Case 2: full path must exist
+        # Case 2: Path must exist
         if not os.path.exists(path):
             return False
 
-        # If user gave folder, try common sub-paths
+        # If path is a directory, try common executable locations
         if os.path.isdir(path):
             candidates = [
                 os.path.join(path, "bin", "java"),
@@ -1408,10 +1387,11 @@ class Configuration(MDScreen):
             else:
                 return False
 
-        # Final test: run `java -version`
+        # Final validation: run 'java -version'
         try:
             result = subprocess.run([path, "-version"], capture_output=True, text=True)
-            return result.returncode == 0 and "version" in (result.stdout + result.stderr).lower()
+            output = (result.stdout + result.stderr).lower()
+            return result.returncode == 0 and "version" in output
         except Exception:
             return False
 
@@ -1419,19 +1399,22 @@ class Configuration(MDScreen):
     # SERVER LOCATION MANAGEMENT
     # ---------------------------
     def edit_server_path(self):
-        """Open directory dialog for server location."""
+        """
+        Open a directory dialog for server location.
+        Handles cross-platform initial paths.
+        """
         root = tk.Tk()
         root.withdraw()
+
+        initial_dir = "C:\\" if os.name == "nt" else os.path.expanduser("~")
+
         folder_path = filedialog.askdirectory(
             title="Select Location for Server",
-            initialdir="C:\\"
+            initialdir=initial_dir
         )
         root.destroy()
 
-        if not folder_path:
-            return
-
-        if not os.path.isdir(folder_path):
+        if not folder_path or not os.path.isdir(folder_path):
             self.ids.status_label.text = "❌ Invalid Folder Location"
             return
 
@@ -1443,8 +1426,14 @@ class Configuration(MDScreen):
     # LICENSE POPUP
     # ---------------------------
     def open_license(self, *args):
-        if not self.dialog:
-            license_text = """\
+        """
+        Display license information in a scrollable MDDialog.
+        """
+        if self.dialog:
+            self.dialog.open()
+            return
+
+        license_text = """\
 License Copyright 2022 Developed Methods LLC
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -1471,53 +1460,53 @@ Note: This project is not affiliated with Playit.gg or Developed Methods LLC.
 The Playit.gg agent is provided as-is under its license.
 """
 
-            scroll = MDScrollView(size_hint=(1, None), height=dp(500))
-            box = MDBoxLayout(
-                orientation="vertical",
-                padding=dp(20),
-                spacing=dp(10),
-                size_hint_y=None
-            )
-            box.bind(minimum_height=box.setter("height"))
+        scroll = MDScrollView(size_hint=(1, None), height=dp(500))
+        box = MDBoxLayout(
+            orientation="vertical",
+            padding=dp(20),
+            spacing=dp(10),
+            size_hint_y=None
+        )
+        box.bind(minimum_height=box.setter("height"))
 
-            label = MDLabel(
-                text=license_text,
-                size_hint_y=None,
-                text_size=(dp(700), None),
-                halign="left",
-                valign="top",
-                theme_text_color="Custom",
-                text_color=(0.1, 0.1, 0.1, 1),
-                font_style="Body1",
-            )
-            label.bind(texture_size=lambda inst, val: setattr(inst, "height", val[1]))
+        label = MDLabel(
+            text=license_text,
+            size_hint_y=None,
+            text_size=(dp(700), None),
+            halign="left",
+            valign="top",
+            theme_text_color="Custom",
+            text_color=(0.1, 0.1, 0.1, 1),
+            font_style="Body1",
+        )
+        label.bind(texture_size=lambda inst, val: setattr(inst, "height", val[1]))
 
-            box.add_widget(label)
-            scroll.add_widget(box)
+        box.add_widget(label)
+        scroll.add_widget(box)
 
-            self.dialog = MDDialog(
-                title="Playit.gg License",
-                type="custom",
-                content_cls=scroll,
-                radius=[20, 20, 20, 20],
-                md_bg_color=(1, 1, 1, 1),
-                size_hint=(0.9, 0.9),
-                buttons=[
-                    MDRaisedButton(
-                        text="CLOSE",
-                        md_bg_color=(0.2, 0.4, 1, 1),
-                        text_color=(1, 1, 1, 1),
-                        on_release=lambda x: self.dialog.dismiss(),
-                    )
-                ],
-            )
-
+        self.dialog = MDDialog(
+            title="Playit.gg License",
+            type="custom",
+            content_cls=scroll,
+            radius=[20, 20, 20, 20],
+            md_bg_color=(1, 1, 1, 1),
+            size_hint=(0.9, 0.9),
+            buttons=[
+                MDRaisedButton(
+                    text="CLOSE",
+                    md_bg_color=(0.2, 0.4, 1, 1),
+                    text_color=(1, 1, 1, 1),
+                    on_release=lambda x: self.dialog.dismiss(),
+                )
+            ],
+        )
         self.dialog.open()
 
     # ---------------------------
     # NAVIGATION
     # ---------------------------
     def back(self):
+        """Return to home screen."""
         self.manager.current = "homescreen"
 
 class Server_Status(MDScreen):
@@ -1677,22 +1666,28 @@ class Server_Status(MDScreen):
         Fully Linux and Windows compatible.
         """
         if path:
-            self.server_path = path
+            # Use absolute normalized path for cross-platform safety
+            self.server_path = os.path.abspath(path)
         if server_name:
             self.server_name = server_name
 
-        # --- Ensure server folder exists ---
-        os.makedirs(self.server_path, exist_ok=True)
+        # Ensure server folder exists (works on both Linux and Windows)
+        try:
+            os.makedirs(self.server_path, exist_ok=True)
+        except Exception as e:
+            print(f"[ERROR] Could not create server folder: {e}")
+            return
 
-        # --- Setup log file (reset each session) ---
+        # Setup log file (reset each session)
         self.log_file = os.path.join(self.server_path, "Server_log.txt")
         try:
+            # 'w' mode clears the file at start
             with open(self.log_file, "w", encoding="utf-8") as f:
-                f.write("")  # clear logs for new session
+                f.write("")
         except Exception as e:
             print(f"[ERROR] Could not reset log file: {e}")
 
-        # --- Load server_info.json ---
+        # Load server_info.json safely
         info_data = {}
         info_path = os.path.join(self.server_path, "server_info.json")
         if os.path.exists(info_path):
@@ -1702,7 +1697,7 @@ class Server_Status(MDScreen):
             except Exception as e:
                 self.replace_log(f"[ERROR] Failed to load server_info.json: {e}")
 
-        # --- Load server.properties (manual parse, not strict INI) ---
+        # Load server.properties manually (cross-platform)
         props_data = {}
         props_path = os.path.join(self.server_path, "server.properties")
         if os.path.exists(props_path):
@@ -1716,51 +1711,66 @@ class Server_Status(MDScreen):
             except Exception as e:
                 print(f"[ERROR] Failed to read server.properties: {e}")
 
-        # --- Server type (from JSON, fallback to Unknown) ---
+        # Determine server type from JSON; default to Unknown
         self.server_type = info_data.get("server_type", "Unknown")
 
-        # --- Update UI labels ---
+        # Update UI labels
         self.ids.server_name_label.text = info_data.get("server_name", self.server_name)
         self.ids.ram_label.text = f"RAM: {info_data.get('server_ram', 'N/A')}"
         self.ids.version_label.text = f"Version: {info_data.get('server_version', 'Unknown')}"
         self.ids.type_label.text = f"Type: {self.server_type}"
 
-    def load_config(self,config_path="config.json"):
+    def load_config(self, config_path="config.json"):
+        """
+        Load configuration file; create default if missing.
+        Fully Linux/Windows compatible.
+        """
+        # Normalize path for cross-platform compatibility
+        config_path = os.path.abspath(config_path)
+
         if not os.path.exists(config_path):
             print("[INFO] Config file not found, creating default config.json")
             default_config = {
                 "setup": False,
                 "server_location": os.getcwd(),  # fallback to current directory
-                "java_path": "java",  # default to system java
+                "java_path": "java",  # default system Java
             }
-            with open(config_path, "w") as f:
-                json.dump(default_config, f, indent=4)
+
+            # Adjust default server location for Raspberry Pi or Linux if desired
+            if platform.system() == "Linux":
+                # Example: Pi default location
+                default_config["server_location"] = os.path.expanduser("~/minecraft_servers")
+
+            try:
+                os.makedirs(default_config["server_location"], exist_ok=True)
+                with open(config_path, "w", encoding="utf-8") as f:
+                    json.dump(default_config, f, indent=4)
+            except Exception as e:
+                print(f"[ERROR] Failed to create default config: {e}")
             return default_config
 
-        with open(config_path, "r") as f:
-            try:
+        # Load existing config
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
                 return json.load(f)
-            except json.JSONDecodeError:
-                print("[ERROR] Config file is corrupted, resetting...")
-                return {}
+        except json.JSONDecodeError:
+            print("[ERROR] Config file is corrupted, resetting...")
+            return {}
+        except Exception as e:
+            print(f"[ERROR] Failed to read config file: {e}")
+            return {}
 
     def start_server(self):
-        """
-        Start Minecraft server (based on server_type) with Playit tunnel and RCON monitoring.
-        """
-        # --- Update Start/Stop UI ---
         self.ids.start_btn.disabled = True
         self.ids.stop_btn.disabled = False
         self.ids.restart_btn.disabled = False
 
-        # --- Load config ---
         config = self.load_config()
         base_location = config.get("server_location", os.getcwd())
         server_folder = os.path.join(base_location, self.server_name)
         jar_path = os.path.join(server_folder, "server.jar")
         info_path = os.path.join(server_folder, "server_info.json")
 
-        # --- RAM allocation ---
         allocated_server_ram = 2048
         if os.path.exists(info_path):
             with open(info_path, "r", encoding="utf-8") as f:
@@ -1769,28 +1779,23 @@ class Server_Status(MDScreen):
 
         ram_max = f"{allocated_server_ram // 1024}G"
 
-        # --- Safety check for JAR ---
         if not os.path.exists(jar_path):
             Clock.schedule_once(lambda dt: self.replace_log(f"[ERROR] server.jar not found at {jar_path}"))
             Clock.schedule_once(lambda dt: setattr(self.ids.server_status, "text", "SERVER: ERROR"))
             return
 
-        # --- Ensure RCON is enabled ---
         rcon_password, rcon_port = self.ensure_rcon()
 
-        # --- Start Playit tunnel ---
         threading.Thread(target=self.start_playit, daemon=True).start()
 
-        # --- Build launch command ---
-        # Load java path from config.json
-        with open("config.json", "r") as f:
-            config = json.load(f)
-        java_path = config.get("java_path", "java")  # fallback to "java" if not set
+        java_path = config.get("java_path", "java")
+        if pf.system() == "Linux":
+            java_path = java_path or "java"
+        else:
+            java_path = java_path or "java.exe"
 
-        # Prepare the command
         java_cmd = [java_path, f"-Xmx{ram_max}", "-Xms1G", "-jar", jar_path, "nogui"]
 
-        # --- Progress maps ---
         progress_maps = {
             "vanilla": {"Starting minecraft server version": 20, "Loading properties": 30,
                         "Default game type": 40, "Preparing level": 50, "Preparing spawn area": 70, "Done": 100},
@@ -1808,7 +1813,6 @@ class Server_Status(MDScreen):
 
         def launch_server():
             try:
-                # --- Launch server process ---
                 self.process = subprocess.Popen(
                     java_cmd,
                     cwd=server_folder,
@@ -1819,30 +1823,24 @@ class Server_Status(MDScreen):
                 )
                 self.running = True
 
-                # Initial UI update
                 Clock.schedule_once(lambda dt: setattr(self.ids.server_status, "text", "SERVER: STARTING..."))
                 Clock.schedule_once(lambda dt: setattr(self.ids.progress_bar_status, "value", 0))
                 Clock.schedule_once(lambda dt: setattr(self.ids.server_log, "text", "Starting server..."))
 
-                # Function to safely enable command input in the console screen
                 def enable_command_input():
                     try:
-                        console_screen = self.manager.get_screen(
-                            "console")  # Change 'console' if your screen has a different name
+                        console_screen = self.manager.get_screen("console")
                         console_screen.ids.command_input.disabled = False
                     except Exception as e:
                         self.replace_log(f"[ERROR] Failed to enable command input: {e}")
 
-                # --- Read server output ---
                 for line in self.process.stdout:
                     line = line.strip()
                     if not line:
                         continue
 
-                    # Update server log
                     Clock.schedule_once(lambda dt, msg=line: self.replace_log(msg))
 
-                    # Update progress bar
                     for key, val in progress_map.items():
                         if key in line:
                             Clock.schedule_once(lambda dt, v=val: setattr(self.ids.progress_bar_status, "value", v))
@@ -1850,13 +1848,13 @@ class Server_Status(MDScreen):
                                 Clock.schedule_once(lambda dt: self.hide_progress())
                                 Clock.schedule_once(
                                     lambda dt: setattr(self.ids.server_status, "text", "SERVER: ONLINE"))
-                                #setting up server_info
+
                                 serfer_info = {}
                                 server_info_path = os.path.join(self.server_path, "server_info.json")
-                                if os.path.exists(info_path):
+                                if os.path.exists(server_info_path):
                                     try:
                                         with open(server_info_path, "r", encoding="utf-8") as f:
-                                            serfer_info= json.load(f)
+                                            serfer_info = json.load(f)
                                     except Exception as e:
                                         self.replace_log(f"[ERROR] Failed to load server_info.json: {e}")
 
@@ -1871,12 +1869,9 @@ class Server_Status(MDScreen):
                                         self.replace_log(f"[ERROR] Failed to save server_info.json: {e}")
 
                                 Clock.schedule_once(lambda dt: enable_command_input())
-                                # Start resource monitoring
                                 threading.Thread(target=self.monitor_resources, daemon=True).start()
                                 self.start_uptime()
 
-
-                    # Detect RCON readiness
                     if "RCON running on" in line:
                         self.monitor_players()
                         self.monitor_battery()
@@ -1886,7 +1881,6 @@ class Server_Status(MDScreen):
                 Clock.schedule_once(lambda dt, msg=err_msg: self.replace_log(msg))
                 Clock.schedule_once(lambda dt: setattr(self.ids.server_status, "text", "SERVER: ERROR"))
 
-        # --- Run server in background ---
         threading.Thread(target=launch_server, daemon=True).start()
 
     def hide_progress(self):
@@ -1895,22 +1889,24 @@ class Server_Status(MDScreen):
         self.ids.progress_bar_status.disabled = True
 
     def replace_log(self, msg: str):
-        """Update status line, console log (latest line), and write to file with cap of 1000 lines."""
+        # Update status line (latest line only)
+        if "server_log" in self.ids:
+            self.ids.server_log.text = msg
 
-        # --- Status screen (latest line only) ---
-        self.ids.server_log.text = msg
-
-        # --- Write to server log file ---
+        # Write to server log file with a cap of 1000 lines
         if self.log_file:
             try:
+                # Ensure the directory exists (Linux-friendly)
+                os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
+
+                # Append new log message
                 with open(self.log_file, "a", encoding="utf-8") as f:
                     f.write(msg + "\n")
 
-                # --- Trim file if >1000 lines ---
+                # Trim file if >1000 lines
                 with open(self.log_file, "r+", encoding="utf-8") as f:
                     lines = f.readlines()
                     if len(lines) > 1000:
-                        # Keep only last 1000 lines
                         f.seek(0)
                         f.writelines(lines[-1000:])
                         f.truncate()
@@ -1954,9 +1950,9 @@ class Server_Status(MDScreen):
     def stop_server(self):
         """
         Stop the Minecraft server gracefully using RCON/stdin,
-        fall back to terminate/kill if needed.
+        fall back to terminate/kill if needed. Linux & Windows compatible.
         """
-        # --- update start stop UI ---
+        # --- Update Start/Stop UI ---
         self.ids.start_btn.disabled = False
         self.ids.stop_btn.disabled = True
         self.ids.restart_btn.disabled = True
@@ -1980,7 +1976,7 @@ class Server_Status(MDScreen):
                         stopped = True
                         Clock.schedule_once(lambda dt: self.replace_log("[INFO] Sent 'stop' via RCON"))
                 except Exception as e:
-                    Clock.schedule_once(lambda dt, msg=f"[WARN] Could not stop via RCON: {e}": self.replace_log(msg))
+                    Clock.schedule_once(lambda dt: self.replace_log(f"[WARN] Could not stop via RCON: {e}"))
 
                 # --- Fallback: send stop via stdin ---
                 if not stopped and self.process.stdin:
@@ -1990,8 +1986,7 @@ class Server_Status(MDScreen):
                         stopped = True
                         Clock.schedule_once(lambda dt: self.replace_log("[INFO] Sent 'stop' via stdin"))
                     except Exception as e:
-                        Clock.schedule_once(
-                            lambda dt, msg=f"[WARN] Could not send stop via stdin: {e}": self.replace_log(msg))
+                        Clock.schedule_once(lambda dt: self.replace_log(f"[WARN] Could not send stop via stdin: {e}"))
 
                 # --- Wait for graceful shutdown ---
                 try:
@@ -1999,7 +1994,11 @@ class Server_Status(MDScreen):
                 except subprocess.TimeoutExpired:
                     Clock.schedule_once(
                         lambda dt: self.replace_log("[WARN] Server did not stop gracefully, terminating..."))
-                    self.process.terminate()
+                    # Cross-platform terminate
+                    if os.name == "nt":  # Windows
+                        self.process.terminate()
+                    else:  # Linux / Raspberry Pi
+                        self.process.terminate()
                     try:
                         self.process.wait(timeout=5)
                     except subprocess.TimeoutExpired:
@@ -2009,14 +2008,14 @@ class Server_Status(MDScreen):
                 # --- Cleanup ---
                 self.running = False
                 self.stop_monitoring()
-                Clock.schedule_once(lambda dt: setattr(self.ids.server_status, "text", "SERVER:Offline"))
+                Clock.schedule_once(lambda dt: setattr(self.ids.server_status, "text", "SERVER: Offline"))
                 Clock.schedule_once(lambda dt: setattr(self.ids.progress_bar_status, "value", 0))
                 Clock.schedule_once(lambda dt: self.replace_log("[INFO] Server stopped successfully"))
                 self.stop_uptime()
                 self.stop_battery_monitor()
-                self.ids.tps_label.text = "Tps:N/A"
-                self.ids.players_label.text ="Players: N/A"
-                info_data = {}
+                self.ids.tps_label.text = "Tps: N/A"
+                self.ids.players_label.text = "Players: N/A"
+
                 info_path = os.path.join(self.server_path, "server_info.json")
                 if os.path.exists(info_path):
                     try:
@@ -2024,22 +2023,28 @@ class Server_Status(MDScreen):
                             info_data = json.load(f)
                     except Exception as e:
                         self.replace_log(f"[ERROR] Failed to load server_info.json: {e}")
+                        info_data = {}
 
-                    info_data["server_players"] = "Players: N/A"
-                    info_data["player_list"] = []
-                    info_data["server_tps"] = "N/A"
-                    info_data["server_status"] = "Offline"
+                    info_data.update({
+                        "server_players": "Players: N/A",
+                        "player_list": [],
+                        "server_tps": "N/A",
+                        "server_status": "Offline"
+                    })
 
+                    # Stop Playit tunnel
                     self.stop_playit()
+
                     try:
-                        with open(info_path, "w", encoding="utf-8") as f:  # write mode
+                        with open(info_path, "w", encoding="utf-8") as f:
                             json.dump(info_data, f, indent=4)
                     except Exception as e:
                         self.replace_log(f"[ERROR] Failed to write server_info.json: {e}")
-            except Exception as e:
-                Clock.schedule_once(lambda dt, msg=f"[ERROR] Failed to stop server: {e}": self.replace_log(msg))
 
-        # 🔑 run in background so UI doesn’t freeze
+            except Exception as e:
+                Clock.schedule_once(lambda dt: self.replace_log(f"[ERROR] Failed to stop server: {e}"))
+
+        # Run stop logic in background to avoid freezing UI
         threading.Thread(target=_stop_thread, daemon=True).start()
 
     def restart_server(self):
@@ -2080,7 +2085,7 @@ class Server_Status(MDScreen):
             serverram = psutil.virtual_memory().percent
 
             # Capture values into local variables so lambdas don't lose scope
-            tps_text = "20"
+            tps_text = "Tps:20"
             cpu_val = servercpu
             ram_val = serverram
 
@@ -2094,11 +2099,16 @@ class Server_Status(MDScreen):
         ip = self.ids.server_ip.text
         Clipboard.copy(ip)
 
-
     def monitor_players(self, interval=5):
+        """
+        Continuously monitor Minecraft server players using the Query protocol.
+        Updates UI every `interval` seconds. Enables query in server.properties if disabled.
+        """
+
         def _monitor():
             while not self.stop_monitor:
                 try:
+                    # Cross-platform server.properties path
                     props_path = os.path.join(self.server_path, "server.properties")
                     if not os.path.exists(props_path):
                         print(f"[ERROR] server.properties not found at {props_path}")
@@ -2108,25 +2118,26 @@ class Server_Status(MDScreen):
                     lines = []
                     changed = False
 
-                    # read props
-                    with open(props_path, "r") as f:
+                    # Read server.properties
+                    with open(props_path, "r", encoding="utf-8") as f:
                         for line in f:
-                            if "=" in line and not line.startswith("#"):
+                            if "=" in line and not line.strip().startswith("#"):
                                 k, v = line.strip().split("=", 1)
-                                props[k] = v
+                                props[k.strip()] = v.strip()
                             lines.append(line)
 
-                    # ensure query enabled
-                    if props.get("enable-query", "false") != "true":
+                    # Ensure query enabled (required for player queries)
+                    if props.get("enable-query", "false").lower() != "true":
                         props["enable-query"] = "true"
                         new_lines = []
                         for line in lines:
-                            if line.startswith("enable-query="):
+                            if line.strip().startswith("enable-query="):
                                 new_lines.append("enable-query=true\n")
                             else:
                                 new_lines.append(line)
                         lines = new_lines
-                        with open(props_path, "w") as f:
+                        # Write updated server.properties back
+                        with open(props_path, "w", encoding="utf-8") as f:
                             f.writelines(lines)
                         changed = True
 
@@ -2135,15 +2146,19 @@ class Server_Status(MDScreen):
                     max_players = int(props.get("max-players", 0))
 
                     if changed:
+                        # Restart server to apply query changes
                         self.restart_server()
                     else:
                         try:
+                            # Use mcstatus JavaServer lookup
                             server = JavaServer.lookup(f"{ip}:{port}")
                             status = server.status()
                             players = status.players.sample or []
                             names = [p.name for p in players]
 
-                            Clock.schedule_once(lambda dt: self.update_players_ui(len(names), max_players, names))
+                            Clock.schedule_once(
+                                lambda dt: self.update_players_ui(len(names), max_players, names)
+                            )
 
                         except Exception as e:
                             print(f"[ERROR] Failed to query server: {e}")
@@ -2153,6 +2168,7 @@ class Server_Status(MDScreen):
 
                 time.sleep(interval)
 
+        # Start monitor thread
         self.stop_monitor = False
         self.monitor_thread = threading.Thread(target=_monitor, daemon=True)
         self.monitor_thread.start()
@@ -2169,10 +2185,10 @@ class Server_Status(MDScreen):
     def ensure_rcon(self):
         """
         Ensures that RCON is enabled in server.properties and sets a password if missing.
-        Must be called **before starting the server**.
+        Must be called before starting the server.
         """
         props_path = os.path.join(self.server_path, "server.properties")
-        default_password = "MySecureRconPassword123"  # change this if needed
+        default_password = "MySecureRconPassword123"
         default_port = 25575
 
         if not os.path.exists(props_path):
@@ -2180,70 +2196,71 @@ class Server_Status(MDScreen):
             return default_password, default_port
 
         props = {}
-        with open(props_path, "r") as f:
+        lines = []
+
+        with open(props_path, "r", encoding="utf-8") as f:
             for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#") and "=" in stripped:
+                    k, v = stripped.split("=", 1)
                     props[k.strip()] = v.strip()
+                lines.append(line)
 
         modified = False
 
-        # Enable RCON if not already
         if props.get("enable-rcon", "false").lower() != "true":
             props["enable-rcon"] = "true"
             modified = True
 
-        # Set RCON password if missing
         if "rcon.password" not in props or not props["rcon.password"].strip():
             props["rcon.password"] = default_password
             modified = True
 
-        # Set RCON port if missing
         if "rcon.port" not in props:
             props["rcon.port"] = str(default_port)
             modified = True
 
-        # Save any changes back to server.properties
         if modified:
-            with open(props_path, "w") as f:
-                for k, v in props.items():
-                    f.write(f"{k}={v}\n")
+            new_lines = []
+            for line in lines:
+                stripped = line.strip()
+                if "=" in stripped and not stripped.startswith("#"):
+                    k = stripped.split("=", 1)[0].strip()
+                    if k in props:
+                        new_lines.append(f"{k}={props[k]}\n")
+                        props.pop(k)
+                        continue
+                new_lines.append(line)
+            # Append any new keys not in original file
+            for k, v in props.items():
+                new_lines.append(f"{k}={v}\n")
+
+            with open(props_path, "w", encoding="utf-8", newline="\n") as f:
+                f.writelines(new_lines)
             print("[INFO] RCON settings updated in server.properties")
 
-        # Return values for connecting
-        rcon_password = props["rcon.password"]
+        rcon_password = props.get("rcon.password", default_password)
         rcon_port = int(props.get("rcon.port", default_port))
         return rcon_password, rcon_port
 
     def update_players_ui(self, online, max_players, names):
-        """
-        Update players UI efficiently:
-        Layout -> [Head]   [ Name (big) ]   [Kick] [Ban]
-        """
-
         def _update(dt):
             self.ids.players_label.text = f"Players: {online}/{max_players}"
 
-            # Ensure mapping exists
             if not hasattr(self.ids.scroll_box, "children_map"):
                 self.ids.scroll_box.children_map = {}
 
             current_names = set(self.ids.scroll_box.children_map.keys())
             new_names = set(names)
 
-
-            # --- Remove players who left ---
             for player in current_names - new_names:
                 widget = self.ids.scroll_box.children_map[player]
                 self.ids.scroll_box.remove_widget(widget)
                 del self.ids.scroll_box.children_map[player]
 
-            # --- Add players who joined ---
             for player in new_names - current_names:
                 skin_url = f"https://minotar.net/helm/{player}/64"
 
-                # Whole row card
                 player_card = MDCard(
                     orientation="horizontal",
                     size_hint_y=None,
@@ -2251,27 +2268,24 @@ class Server_Status(MDScreen):
                     padding="10dp",
                     spacing="15dp",
                     radius=[12],
-                    md_bg_color=(0.95, 0.95, 0.97, 1),  # light white-gray
+                    md_bg_color=(0.95, 0.95, 0.97, 1),
                 )
 
-                # Player Head
                 img = FitImage(
                     source=skin_url,
                     size_hint=(None, None),
                     size=("56dp", "56dp"),
                 )
 
-                # Player Name (center, bigger font)
                 name_label = MDLabel(
                     text=player,
                     halign="center",
-                    font_style="H6",  # bigger
+                    font_style="H6",
                     theme_text_color="Custom",
                     text_color=(0.1, 0.1, 0.1, 1),
                     size_hint_x=1
                 )
 
-                # Kick Button
                 kick_btn = MDRaisedButton(
                     text="Kick",
                     md_bg_color=(0.9, 0.3, 0.3, 1),
@@ -2281,7 +2295,6 @@ class Server_Status(MDScreen):
                     on_release=lambda x, p=player: self.kick_player(p),
                 )
 
-                # Ban Button
                 ban_btn = MDRaisedButton(
                     text="Ban",
                     md_bg_color=(0.6, 0.1, 0.1, 1),
@@ -2291,17 +2304,14 @@ class Server_Status(MDScreen):
                     on_release=lambda x, p=player: self.ban_player(p),
                 )
 
-                # Add widgets to row
                 player_card.add_widget(img)
                 player_card.add_widget(name_label)
                 player_card.add_widget(kick_btn)
                 player_card.add_widget(ban_btn)
 
-                # Save reference
                 self.ids.scroll_box.children_map[player] = player_card
                 self.ids.scroll_box.add_widget(player_card)
 
-            # --- Update server_info.json ---
             info_path = os.path.join(self.server_path, "server_info.json")
             info_data = {}
             if os.path.exists(info_path):
@@ -2309,13 +2319,13 @@ class Server_Status(MDScreen):
                     with open(info_path, "r", encoding="utf-8") as f:
                         info_data = json.load(f)
                 except Exception as e:
-                   self.replace_log(f"[ERROR] Failed to read server_info.json: {e}")
+                    self.replace_log(f"[ERROR] Failed to read server_info.json: {e}")
 
             info_data["server_players"] = f"{online}/{max_players}"
             info_data["player_list"] = names
 
             try:
-                with open(info_path, "w", encoding="utf-8") as f:
+                with open(info_path, "w", encoding="utf-8", newline="\n") as f:
                     json.dump(info_data, f, indent=4)
             except Exception as e:
                 self.replace_log(f"[ERROR] Failed to write server_info.json: {e}")
@@ -2406,10 +2416,10 @@ class Server_Status(MDScreen):
 
     @staticmethod
     def get_server_log_info(instance):
-        """Return server path for a given Server_Status instance."""
+        """Return normalized server path for a given Server_Status instance."""
         if not instance or not instance.server_path:
             return None
-        return instance.server_path
+        return os.path.normpath(instance.server_path)
 
     def set_screen(self, screen_name):
         # Switch screen
@@ -2418,31 +2428,29 @@ class Server_Status(MDScreen):
         self.update_tab_colors(screen_name)
 
     def update_tab_colors(self, active_screen):
-        # Default = white
+        # Colors
         inactive_color = (1, 1, 1, 1)
         active_color = (0.25, 0.5, 1, 1)
 
-        # Reset all tabs to white
-        self.ids.tab_status.text_color = inactive_color
-        self.ids.tab_players.text_color = inactive_color
-        self.ids.tab_console.text_color = inactive_color
-        self.ids.tab_logs.text_color = inactive_color
-        self.ids.tab_props.text_color = inactive_color
-        self.ids.tab_home.text_color = inactive_color
+        # Map screen names to tab IDs
+        tab_mapping = {
+            "status": "tab_status",
+            "players": "tab_players",
+            "console": "tab_console",
+            "server_file": "tab_logs",
+            "server_properties": "tab_props",
+            "homescreen": "tab_home"
+        }
+
+        # Reset all tabs to inactive
+        for tab_id in tab_mapping.values():
+            if tab_id in self.ids:
+                self.ids[tab_id].text_color = inactive_color
 
         # Set active tab color
-        if active_screen == "status":
-            self.ids.tab_status.text_color = active_color
-        elif active_screen == "players":
-            self.ids.tab_players.text_color = active_color
-        elif active_screen == "console":
-            self.ids.tab_console.text_color = active_color
-        elif active_screen == "server_file":
-            self.ids.tab_logs.text_color = active_color
-        elif active_screen == "server_properties":
-            self.ids.tab_props.text_color = active_color
-        elif active_screen == "homescreen":
-            self.ids.tab_home.text_color = active_color
+        active_tab_id = tab_mapping.get(active_screen)
+        if active_tab_id and active_tab_id in self.ids:
+            self.ids[active_tab_id].text_color = active_color
 class Server_Console(MDScreen):
     MAX_LOG_LINES = 1000
     manager = ObjectProperty()
@@ -2469,31 +2477,29 @@ class Server_Console(MDScreen):
         self.update_tab_colors(screen_name)
 
     def update_tab_colors(self, active_screen):
-        # Default = white
+        # Colors
         inactive_color = (1, 1, 1, 1)
         active_color = (0.25, 0.5, 1, 1)
 
-        # Reset all tabs to white
-        self.ids.tab_status.text_color = inactive_color
-        self.ids.tab_players.text_color = inactive_color
-        self.ids.tab_console.text_color = inactive_color
-        self.ids.tab_logs.text_color = inactive_color
-        self.ids.tab_props.text_color = inactive_color
-        self.ids.tab_home.text_color = inactive_color
+        # Map screen names to tab IDs
+        tab_mapping = {
+            "status": "tab_status",
+            "players": "tab_players",
+            "console": "tab_console",
+            "server_file": "tab_logs",
+            "server_properties": "tab_props",
+            "homescreen": "tab_home"
+        }
+
+        # Reset all tabs to inactive
+        for tab_id in tab_mapping.values():
+            if tab_id in self.ids:
+                self.ids[tab_id].text_color = inactive_color
 
         # Set active tab color
-        if active_screen == "status":
-            self.ids.tab_status.text_color = active_color
-        elif active_screen == "players":
-            self.ids.tab_players.text_color = active_color
-        elif active_screen == "console":
-            self.ids.tab_console.text_color = active_color
-        elif active_screen == "server_file":
-            self.ids.tab_logs.text_color = active_color
-        elif active_screen == "server_properties":
-            self.ids.tab_props.text_color = active_color
-        elif active_screen == "homescreen":
-            self.ids.tab_home.text_color = active_color
+        active_tab_id = tab_mapping.get(active_screen)
+        if active_tab_id and active_tab_id in self.ids:
+            self.ids[active_tab_id].text_color = active_color
 
     def attach_to_server(self):
         """Attach console to the currently active Server_Status instance and load logs."""
@@ -2538,7 +2544,7 @@ class Server_Console(MDScreen):
             return
 
         try:
-            with open(self.log_file, "r", encoding="utf-8") as f:
+            with open(log_file, "r", encoding="utf-8") as f:
                 lines = f.readlines()
 
             lines = lines[-self.MAX_LOG_LINES:]
@@ -2553,14 +2559,14 @@ class Server_Console(MDScreen):
                 elif "WARN" in line or "WARNING" in line:
                     colored_text += f"[color=FFAA00]{line}[/color]\n"  # yellow
                 else:
-                    colored_text += f"[color=FFFFFF]{line}[/color]\n"  # true white
+                    colored_text += f"[color=FFFFFF]{line}[/color]\n"  # white
 
             self.ids.server_log.text = colored_text
             self.ids.server_log.texture_update()
             self.ids.server_log.height = self.ids.server_log.texture_size[1]
 
-        except Exception as e:
-            self.ids.server_log.text = f"[color=FF5555][ERROR] Failed to read log: {e}[/color]"
+        except (PermissionError, OSError) as e:
+            self.ids.server_log.text = f"[color=FF5555][ERROR] Cannot read log: {e}[/color]"
             self.ids.server_log.texture_update()
             self.ids.server_log.height = self.ids.server_log.texture_size[1]
 
@@ -2569,11 +2575,19 @@ class Server_Console(MDScreen):
         # Clear the UI
         self.ids.server_log.text = ""
 
-        # Clear the file
-        if self.log_file and os.path.exists(self.log_file):
-            with open(self.log_file, "w", encoding="utf-8") as f:
-                f.write("")  # This clears the file
+        if not self.log_file:
+            return
 
+        log_file = os.path.normpath(self.log_file)
+
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, "w", encoding="utf-8") as f:
+                    f.write("")  # clear file
+            except (PermissionError, OSError) as e:
+                self.ids.server_log.text = f"[color=FF5555][ERROR] Cannot clear log: {e}[/color]"
+                self.ids.server_log.texture_update()
+                self.ids.server_log.height = self.ids.server_log.texture_size[1]
 
     # -------- Console Input --------
     def send_command(self, command: str):
@@ -2616,37 +2630,53 @@ class Server_Console(MDScreen):
         self.file_manager.show(start_path)
 
     def save_logs_to_path(self, path: str):
+        import os
+
         if not path.endswith(".txt"):
             path += ".txt"
 
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(self.ids.server_log.text)
+        path = os.path.normpath(path)  # normalize for Linux/Windows
+
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(self.ids.server_log.text)
+            self.ids.server_log.text += f"\n[INFO] Logs saved to {path}"
+        except (PermissionError, OSError) as e:
+            self.ids.server_log.text += f"\n[ERROR] Could not save logs: {e}"
 
         self.close_file_manager()
-        self.ids.server_log.text += f"\n[INFO] Logs saved to {path}"
 
     def close_file_manager(self, *args):
-        self.file_manager.close()
+        if hasattr(self, "file_manager") and self.file_manager:
+            self.file_manager.close()
 
-    # -------- Server Info (TPS / Players) --------
     def refresh_server_info(self):
         """Read TPS and player count from server_info.json and update UI."""
-        if not self.server_info_file or not os.path.exists(self.server_info_file):
+        import os, json
+
+        if not self.server_info_file:
+            self.ids.server_info_label.text = "TPS: N/A\nPlayers: N/A"
+            return
+
+        server_info_file = os.path.normpath(self.server_info_file)
+
+        if not os.path.exists(server_info_file):
             self.ids.server_info_label.text = "TPS: N/A\nPlayers: N/A"
             return
 
         try:
-            with open(self.server_info_file, "r", encoding="utf-8") as f:
+            with open(server_info_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             tps = data.get("tps", "N/A")
             players_online = data.get("server_players", "N/A")
-
             self.ids.server_info_label.text = f"TPS: {tps}\nPlayers: {players_online}"
 
-        except Exception as e:
-            self.ids.server_info_label.text = f"TPS: N/A\nPlayers: Error"
-
+        except (PermissionError, OSError, json.JSONDecodeError) as e:
+            self.ids.server_info_label.text = f"TPS: N/A\nPlayers: Error ({e})"
 
 
 class Server_Players(MDScreen):
@@ -2698,25 +2728,29 @@ class Server_Players(MDScreen):
 
         # Skip refresh if search is ongoing
         if getattr(self, "_search_active", False):
-
             return
 
-        if not self.server_info_path or not os.path.exists(self.server_info_path):
-
+        if not self.server_info_path:
             self.server_data = {"max_players": 20, "player_list": []}
+            names = []
         else:
-            try:
-                with open(self.server_info_path, "r", encoding="utf-8") as f:
-                    self.server_data = json.load(f)
+            server_info_path = os.path.normpath(self.server_info_path)
 
-            except Exception as e:
-
+            if not os.path.exists(server_info_path):
                 self.server_data = {"max_players": 20, "player_list": []}
+                names = []
+            else:
+                try:
+                    with open(server_info_path, "r", encoding="utf-8") as f:
+                        self.server_data = json.load(f)
+                except (PermissionError, OSError, json.JSONDecodeError):
+                    self.server_data = {"max_players": 20, "player_list": []}
 
-        names = self.server_data.get("player_list", [])
+                names = self.server_data.get("player_list", [])
+
+        # Handle case where player list is list of dicts
         if names and isinstance(names[0], dict):
             names = [p.get("name") for p in names]
-
 
         max_players = self.server_data.get("max_players", 20)
         self.update_players_ui(len(names), max_players, names)
@@ -2895,31 +2929,29 @@ class Server_Players(MDScreen):
         self.update_tab_colors(screen_name)
 
     def update_tab_colors(self, active_screen):
-        # Default = white
+        # Colors
         inactive_color = (1, 1, 1, 1)
         active_color = (0.25, 0.5, 1, 1)
 
-        # Reset all tabs to white
-        self.ids.tab_status.text_color = inactive_color
-        self.ids.tab_players.text_color = inactive_color
-        self.ids.tab_console.text_color = inactive_color
-        self.ids.tab_logs.text_color = inactive_color
-        self.ids.tab_props.text_color = inactive_color
-        self.ids.tab_home.text_color = inactive_color
+        # Map screen names to tab IDs
+        tab_mapping = {
+            "status": "tab_status",
+            "players": "tab_players",
+            "console": "tab_console",
+            "server_file": "tab_logs",
+            "server_properties": "tab_props",
+            "homescreen": "tab_home"
+        }
+
+        # Reset all tabs to inactive
+        for tab_id in tab_mapping.values():
+            if tab_id in self.ids:
+                self.ids[tab_id].text_color = inactive_color
 
         # Set active tab color
-        if active_screen == "status":
-            self.ids.tab_status.text_color = active_color
-        elif active_screen == "players":
-            self.ids.tab_players.text_color = active_color
-        elif active_screen == "console":
-            self.ids.tab_console.text_color = active_color
-        elif active_screen == "server_file":
-            self.ids.tab_logs.text_color = active_color
-        elif active_screen == "server_properties":
-            self.ids.tab_props.text_color = active_color
-        elif active_screen == "homescreen":
-            self.ids.tab_home.text_color = active_color
+        active_tab_id = tab_mapping.get(active_screen)
+        if active_tab_id and active_tab_id in self.ids:
+            self.ids[active_tab_id].text_color = active_color
 
     def open_banned(self):
         self.manager.current ="banned_players"
@@ -2969,16 +3001,23 @@ class Banned_Players(MDScreen):
         threading.Thread(target=self.load_online_players, daemon=True).start()
 
     def load_online_players(self):
+        import os, json
         with self._lock:
             online_players = []
-            path = os.path.join(self.server_path, "server_info.json")
+
+            if not self.server_path:
+                self._online_players = online_players
+                return
+
+            path = os.path.normpath(os.path.join(self.server_path, "server_info.json"))
+
             if os.path.exists(path):
                 try:
-                    with open(path, "r") as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         data = json.load(f)
                         online_players = data.get("player_list", [])
-                except Exception as e:
-                    print(f"Failed to read server_info.json: {e}")
+                except (PermissionError, OSError, json.JSONDecodeError) as e:
+                    print(f"[ERROR] Failed to read server_info.json: {e}")
 
             self._online_players = online_players
             search_text = self.ids.get("search_all").text if self.ids.get("search_all") else ""
@@ -3040,32 +3079,43 @@ class Banned_Players(MDScreen):
         threading.Thread(target=self.load_banned_players, daemon=True).start()
 
     def load_banned_players(self):
+        import os, json
+
         with self._lock:
             banned_players = []
-            banned_file = os.path.join(self.server_path, "banned-players.json")
-            banned_ips_file = os.path.join(self.server_path, "banned-ips.json")
 
+            if not self.server_path:
+                self._banned_players = banned_players
+                return
+
+            banned_file = os.path.normpath(os.path.join(self.server_path, "banned-players.json"))
+            banned_ips_file = os.path.normpath(os.path.join(self.server_path, "banned-ips.json"))
+
+            # Load banned players
             if os.path.exists(banned_file):
                 try:
-                    with open(banned_file, "r") as f:
+                    with open(banned_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
                         for p in data:
                             if isinstance(p, dict) and "name" in p:
                                 banned_players.append(p["name"])
                             elif isinstance(p, str):
                                 banned_players.append(p)
-                except:
-                    pass
+                except (PermissionError, OSError, json.JSONDecodeError) as e:
+                    print(f"[ERROR] Failed to read banned-players.json: {e}")
 
+            # Load banned IPs
             if os.path.exists(banned_ips_file):
                 try:
-                    with open(banned_ips_file, "r") as f:
+                    with open(banned_ips_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                        banned_players.extend(data)
-                except:
-                    pass
+                        if isinstance(data, list):
+                            banned_players.extend(data)
+                except (PermissionError, OSError, json.JSONDecodeError) as e:
+                    print(f"[ERROR] Failed to read banned-ips.json: {e}")
 
             self._banned_players = banned_players
+
             search_text = self.ids.get("search_banned").text if self.ids.get("search_banned") else ""
             Clock.schedule_once(lambda dt: self.update_banned_panel_ui(search_text))
 
@@ -3152,38 +3202,46 @@ class Banned_Players(MDScreen):
 
     # ==================== BAN / UNBAN ====================
     def ban_user_global(self, username):
+        import os, json, threading
         def _ban():
-            banned_file = os.path.join(self.server_path, "banned-players.json")
+            banned_file = os.path.normpath(os.path.join(self.server_path, "banned-players.json"))
             banned_players = self._banned_players.copy()
 
             if username not in banned_players:
                 banned_players.append(username)
 
-            with open(banned_file, "w") as f:
-                json.dump(banned_players, f, indent=2)
+            try:
+                with open(banned_file, "w", encoding="utf-8") as f:
+                    json.dump(banned_players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write banned-players.json: {e}")
 
-            # Update in-memory list
             self._banned_players = banned_players
-            # Refresh right panel instantly
-            Clock.schedule_once(lambda dt: self.update_banned_panel_ui(self.ids.get("search_banned").text))
+            Clock.schedule_once(lambda dt: self.update_banned_panel_ui(
+                self.ids.get("search_banned").text if self.ids.get("search_banned") else ""
+            ))
 
         threading.Thread(target=_ban, daemon=True).start()
 
     def unban_player(self, username):
+        import os, json, threading
         def _unban():
-            banned_file = os.path.join(self.server_path, "banned-players.json")
+            banned_file = os.path.normpath(os.path.join(self.server_path, "banned-players.json"))
             banned_players = self._banned_players.copy()
 
             if username in banned_players:
                 banned_players.remove(username)
 
-            with open(banned_file, "w") as f:
-                json.dump(banned_players, f, indent=2)
+            try:
+                with open(banned_file, "w", encoding="utf-8") as f:
+                    json.dump(banned_players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write banned-players.json: {e}")
 
-            # Update in-memory list
             self._banned_players = banned_players
-            # Refresh right panel instantly
-            Clock.schedule_once(lambda dt: self.update_banned_panel_ui(self.ids.get("search_banned").text))
+            Clock.schedule_once(lambda dt: self.update_banned_panel_ui(
+                self.ids.get("search_banned").text if self.ids.get("search_banned") else ""
+            ))
 
         threading.Thread(target=_unban, daemon=True).start()
 class Server_Whitelist(MDScreen):
@@ -3221,21 +3279,26 @@ class Server_Whitelist(MDScreen):
 
     # --------------------- Check whitelist toggle ---------------------
     def check_whitelist_status(self):
+        import os
+
         status_label = self.ids.get("whitelist_status")
-        if not status_label:
+        if not status_label or not self.server_path:
             return
-        properties_path = os.path.join(self.server_path, "server.properties")
+
+        properties_path = os.path.normpath(os.path.join(self.server_path, "server.properties"))
         whitelist_on = True
+
         if os.path.exists(properties_path):
             try:
-                with open(properties_path, "r") as f:
+                with open(properties_path, "r", encoding="utf-8") as f:
                     for line in f:
                         if line.startswith("white-list=") or line.startswith("whitelist="):
                             value = line.strip().split("=")[-1].lower()
                             whitelist_on = (value == "true")
                             break
-            except Exception as e:
-                print(f"Error reading server.properties: {e}")
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to read server.properties: {e}")
+
         status_label.text = "" if whitelist_on else "Whitelist is turned OFF"
 
     # ==================== RIGHT PANEL ====================
@@ -3243,20 +3306,29 @@ class Server_Whitelist(MDScreen):
         threading.Thread(target=self.load_whitelisted_players, daemon=True).start()
 
     def load_whitelisted_players(self):
+        import os, json
+
         with self._lock:
-            whitelist_file = os.path.join(self.server_path, "whitelist.json")
             players = []
+
+            if not self.server_path:
+                self._whitelisted_players = players
+                return
+
+            whitelist_file = os.path.normpath(os.path.join(self.server_path, "whitelist.json"))
+
             if os.path.exists(whitelist_file):
                 try:
-                    with open(whitelist_file, "r") as f:
+                    with open(whitelist_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
                         for p in data:
                             if isinstance(p, dict) and "name" in p:
                                 players.append(p["name"])
                             elif isinstance(p, str):
                                 players.append(p)
-                except Exception as e:
-                    print(f"Failed to read whitelist.json: {e}")
+                except (PermissionError, OSError, json.JSONDecodeError) as e:
+                    print(f"[ERROR] Failed to read whitelist.json: {e}")
+
             self._whitelisted_players = players
             search_text = self.ids.get("search_whitelist").text if self.ids.get("search_whitelist") else ""
             Clock.schedule_once(lambda dt: self.update_whitelist_panel_ui(search_text))
@@ -3342,27 +3414,47 @@ class Server_Whitelist(MDScreen):
 
     # ==================== ADD / REMOVE ====================
     def add_to_whitelist(self, username):
+        import os, json, threading
+
         def _add():
-            whitelist_file = os.path.join(self.server_path, "whitelist.json")
+            whitelist_file = os.path.normpath(os.path.join(self.server_path, "whitelist.json"))
             players = self._whitelisted_players.copy()
+
             if username and username not in players:
                 players.append(username)
-            with open(whitelist_file, "w") as f:
-                json.dump(players, f, indent=2)
+
+            try:
+                with open(whitelist_file, "w", encoding="utf-8") as f:
+                    json.dump(players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write whitelist.json: {e}")
+
             self._whitelisted_players = players
-            Clock.schedule_once(lambda dt: self.update_whitelist_panel_ui(self.ids.get("search_whitelist").text))
+            search_text = self.ids.get("search_whitelist").text if self.ids.get("search_whitelist") else ""
+            Clock.schedule_once(lambda dt: self.update_whitelist_panel_ui(search_text))
+
         threading.Thread(target=_add, daemon=True).start()
 
     def remove_from_whitelist(self, username):
+        import os, json, threading
+
         def _remove():
-            whitelist_file = os.path.join(self.server_path, "whitelist.json")
+            whitelist_file = os.path.normpath(os.path.join(self.server_path, "whitelist.json"))
             players = self._whitelisted_players.copy()
+
             if username in players:
                 players.remove(username)
-            with open(whitelist_file, "w") as f:
-                json.dump(players, f, indent=2)
+
+            try:
+                with open(whitelist_file, "w", encoding="utf-8") as f:
+                    json.dump(players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write whitelist.json: {e}")
+
             self._whitelisted_players = players
-            Clock.schedule_once(lambda dt: self.update_whitelist_panel_ui(self.ids.get("search_whitelist").text))
+            search_text = self.ids.get("search_whitelist").text if self.ids.get("search_whitelist") else ""
+            Clock.schedule_once(lambda dt: self.update_whitelist_panel_ui(search_text))
+
         threading.Thread(target=_remove, daemon=True).start()
 class Server_Ops(MDScreen):
     server_path = ""
@@ -3400,20 +3492,29 @@ class Server_Ops(MDScreen):
         threading.Thread(target=self.load_ops_players, daemon=True).start()
 
     def load_ops_players(self):
+        import os, json
+
         with self._lock:
-            ops_file = os.path.join(self.server_path, "ops.json")
             players = []
+
+            if not self.server_path:
+                self._ops_players = players
+                return
+
+            ops_file = os.path.normpath(os.path.join(self.server_path, "ops.json"))
+
             if os.path.exists(ops_file):
                 try:
-                    with open(ops_file, "r") as f:
+                    with open(ops_file, "r", encoding="utf-8") as f:
                         data = json.load(f)
                         for p in data:
                             if isinstance(p, dict) and "name" in p:
                                 players.append(p["name"])
                             elif isinstance(p, str):
                                 players.append(p)
-                except Exception as e:
-                    print(f"Failed to read ops.json: {e}")
+                except (PermissionError, OSError, json.JSONDecodeError) as e:
+                    print(f"[ERROR] Failed to read ops.json: {e}")
+
             self._ops_players = players
             search_text = self.ids.get("search_ops").text if self.ids.get("search_ops") else ""
             Clock.schedule_once(lambda dt: self.update_ops_panel_ui(search_text))
@@ -3499,27 +3600,47 @@ class Server_Ops(MDScreen):
 
     # ==================== ADD / REMOVE OPS ====================
     def add_op(self, username):
+        import os, json, threading
+
         def _add():
-            ops_file = os.path.join(self.server_path, "ops.json")
+            ops_file = os.path.normpath(os.path.join(self.server_path, "ops.json"))
             players = self._ops_players.copy()
+
             if username and username not in players:
                 players.append(username)
-            with open(ops_file, "w") as f:
-                json.dump(players, f, indent=2)
+
+            try:
+                with open(ops_file, "w", encoding="utf-8") as f:
+                    json.dump(players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write ops.json: {e}")
+
             self._ops_players = players
-            Clock.schedule_once(lambda dt: self.update_ops_panel_ui(self.ids.get("search_ops").text))
+            search_text = self.ids.get("search_ops").text if self.ids.get("search_ops") else ""
+            Clock.schedule_once(lambda dt: self.update_ops_panel_ui(search_text))
+
         threading.Thread(target=_add, daemon=True).start()
 
     def remove_op(self, username):
+        import os, json, threading
+
         def _remove():
-            ops_file = os.path.join(self.server_path, "ops.json")
+            ops_file = os.path.normpath(os.path.join(self.server_path, "ops.json"))
             players = self._ops_players.copy()
+
             if username in players:
                 players.remove(username)
-            with open(ops_file, "w") as f:
-                json.dump(players, f, indent=2)
+
+            try:
+                with open(ops_file, "w", encoding="utf-8") as f:
+                    json.dump(players, f, indent=2)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to write ops.json: {e}")
+
             self._ops_players = players
-            Clock.schedule_once(lambda dt: self.update_ops_panel_ui(self.ids.get("search_ops").text))
+            search_text = self.ids.get("search_ops").text if self.ids.get("search_ops") else ""
+            Clock.schedule_once(lambda dt: self.update_ops_panel_ui(search_text))
+
         threading.Thread(target=_remove, daemon=True).start()
 # --------------------------
 # Custom File List Item
@@ -3537,7 +3658,6 @@ class FileManagerItem(OneLineAvatarIconListItem):
     def on_selection_change(self, selected):
         """Highlight item if selected, transparent if not."""
         self.bg_color = [0.2, 0.4, 0.8, 0.3] if selected else (0, 0, 0, 0)
-
 
 # ----------------------------
 # File Manager Screen
@@ -3557,41 +3677,42 @@ class Server_File(MDScreen):
         self.attach_to_server()
         Window.bind(on_keyboard=self.on_key)
         self.update_tab_colors(self.manager.current)
+
     def on_leave(self, *args):
         Window.unbind(on_keyboard=self.on_key)
 
+    # ------------------------
+    # Screen & Tab Handling
+    # ------------------------
     def set_screen(self, screen_name):
-        # Switch screen
         self.manager.current = screen_name
-        # Update bottom tab colors
         self.update_tab_colors(screen_name)
 
     def update_tab_colors(self, active_screen):
-        # Default = white
+        # Colors
         inactive_color = (1, 1, 1, 1)
         active_color = (0.25, 0.5, 1, 1)
 
-        # Reset all tabs to white
-        self.ids.tab_status.text_color = inactive_color
-        self.ids.tab_players.text_color = inactive_color
-        self.ids.tab_console.text_color = inactive_color
-        self.ids.tab_logs.text_color = inactive_color
-        self.ids.tab_props.text_color = inactive_color
-        self.ids.tab_home.text_color = inactive_color
+        # Map screen names to tab IDs
+        tab_mapping = {
+            "status": "tab_status",
+            "players": "tab_players",
+            "console": "tab_console",
+            "server_file": "tab_logs",
+            "server_properties": "tab_props",
+            "homescreen": "tab_home"
+        }
+
+        # Reset all tabs to inactive
+        for tab_id in tab_mapping.values():
+            if tab_id in self.ids:
+                self.ids[tab_id].text_color = inactive_color
 
         # Set active tab color
-        if active_screen == "status":
-            self.ids.tab_status.text_color = active_color
-        elif active_screen == "players":
-            self.ids.tab_players.text_color = active_color
-        elif active_screen == "console":
-            self.ids.tab_console.text_color = active_color
-        elif active_screen == "server_file":
-            self.ids.tab_logs.text_color = active_color
-        elif active_screen == "server_properties":
-            self.ids.tab_props.text_color = active_color
-        elif active_screen == "homescreen":
-            self.ids.tab_home.text_color = active_color
+        active_tab_id = tab_mapping.get(active_screen)
+        if active_tab_id and active_tab_id in self.ids:
+            self.ids[active_tab_id].text_color = active_color
+
     # ------------------------
     # Server Attachment
     # ------------------------
@@ -3599,10 +3720,15 @@ class Server_File(MDScreen):
         """Attach the file manager to the server path, fallback to home."""
         try:
             server_status_screen = self.manager.get_screen("status")
-            self.current_path = Server_Status.get_server_log_info(server_status_screen)
+            server_path = Server_Status.get_server_log_info(server_status_screen)
+            if server_path:
+                self.current_path = os.path.normpath(server_path)
+            else:
+                self.current_path = os.path.expanduser("~")
             self.server_path = self.current_path
         except Exception:
             self.current_path = os.path.expanduser("~")
+            self.server_path = self.current_path
         finally:
             self.load_files()
 
@@ -3615,17 +3741,17 @@ class Server_File(MDScreen):
 
         try:
             for item in os.listdir(self.current_path):
-                full_path = os.path.join(self.current_path, item)
+                full_path = os.path.normpath(os.path.join(self.current_path, item))
                 if os.path.isdir(full_path):
                     folders.append({"text": item, "path": full_path, "is_folder": True})
                 else:
                     files.append({"text": item, "path": full_path, "is_folder": False})
         except PermissionError:
-            self.log_message("Permission Denied.")
+            self.log_message("Permission Denied.", error=True)
             self.go_back()
             return
         except Exception as e:
-            self.log_message(f"Error reading directory: {e}")
+            self.log_message(f"Error reading directory: {e}", error=True)
             return
 
         folders.sort(key=lambda x: x['text'].lower())
@@ -3655,16 +3781,16 @@ class Server_File(MDScreen):
 
         if is_double_click:
             if item.is_folder:
-                self.current_path = item.path
+                self.current_path = os.path.normpath(item.path)
                 self.load_files()
             else:
                 try:
-                    webbrowser.open(item.path)
+                    webbrowser.open(os.path.abspath(item.path))
                 except Exception as e:
-                    self.log_message(f"Could not open file: {e}")
+                    self.log_message(f"Could not open file: {e}", error=True)
 
     def on_key(self, window, key, scancode, codepoint, modifier):
-        if 'ctrl' in modifier:
+        if 'ctrl' in modifier or 'meta' in modifier:  # Linux may use meta
             if codepoint == 'c':
                 self._clipboard = list(self.selected_paths)
             elif codepoint == 'v':
@@ -3686,7 +3812,7 @@ class Server_File(MDScreen):
         if os.path.commonpath([parent_dir, server_abs]) != server_abs:
             return
 
-        self.current_path = parent_dir
+        self.current_path = os.path.normpath(parent_dir)
         self.load_files()
 
     def do_delete(self):
@@ -3696,8 +3822,10 @@ class Server_File(MDScreen):
                     shutil.rmtree(path)
                 else:
                     os.remove(path)
+            except PermissionError:
+                self.log_message(f"Permission denied: {os.path.basename(path)}", error=True)
             except Exception as e:
-                self.log_message(f"Error deleting {os.path.basename(path)}: {e}")
+                self.log_message(f"Error deleting {os.path.basename(path)}: {e}", error=True)
         self.load_files()
 
     def do_rename_item(self, old_path, new_name):
@@ -3705,12 +3833,14 @@ class Server_File(MDScreen):
             return
         new_path = os.path.join(os.path.dirname(old_path), new_name)
         if os.path.exists(new_path):
-            self.log_message(f"'{new_name}' already exists.")
+            self.log_message(f"'{new_name}' already exists.", error=True)
             return
         try:
             os.rename(old_path, new_path)
+        except PermissionError:
+            self.log_message(f"Permission denied: {old_path}", error=True)
         except Exception as e:
-            self.log_message(f"Error renaming: {e}")
+            self.log_message(f"Error renaming: {e}", error=True)
         self.load_files()
 
     def do_create_folder(self, folder_name):
@@ -3719,11 +3849,13 @@ class Server_File(MDScreen):
         path = os.path.join(self.current_path, folder_name)
         try:
             if os.path.exists(path):
-                self.log_message(f"'{folder_name}' already exists.")
+                self.log_message(f"'{folder_name}' already exists.", error=True)
                 return
             os.makedirs(path)
+        except PermissionError:
+            self.log_message(f"Permission denied: {folder_name}", error=True)
         except Exception as e:
-            self.log_message(f"Error creating folder: {e}")
+            self.log_message(f"Error creating folder: {e}", error=True)
         self.load_files()
 
     def do_copy(self, sources, destination_dir):
@@ -3740,8 +3872,10 @@ class Server_File(MDScreen):
                     shutil.copytree(src_path, dest_path)
                 else:
                     shutil.copy2(src_path, dest_path)
+            except PermissionError:
+                self.log_message(f"Permission denied: {base_name}", error=True)
             except Exception as e:
-                self.log_message(f"Error copying {base_name}: {e}")
+                self.log_message(f"Error copying {base_name}: {e}", error=True)
         self.load_files()
 
     # ------------------------
@@ -3805,8 +3939,9 @@ class Server_File(MDScreen):
     # ------------------------
     # Helpers
     # ------------------------
-    def log_message(self, msg):
-        self.ids.log_label.text = f"[ERROR] {msg}"
+    def log_message(self, msg, error=True):
+        prefix = "[ERROR]" if error else "[INFO]"
+        self.ids.log_label.text = f"{prefix} {msg}"
 
     def show_input_dialog(self, title, hint_text="", initial_text="", callback=None):
         dialog = MDDialog(
@@ -3882,6 +4017,7 @@ class Server_Properties(MDScreen):
     def load_properties(self):
         props_file = os.path.join(self.server_path, "server.properties")
         props = {}
+
         if os.path.exists(props_file):
             try:
                 with open(props_file, "r", encoding="utf-8") as f:
@@ -3889,8 +4025,8 @@ class Server_Properties(MDScreen):
                         if "=" in line:
                             k, v = line.strip().split("=", 1)
                             props[k] = v
-            except Exception as e:
-                print("Failed to load server.properties:", e)
+            except (PermissionError, OSError) as e:
+                print(f"[ERROR] Failed to load server.properties: {e}")
 
         self.original_props = props.copy()
 
@@ -3917,25 +4053,19 @@ class Server_Properties(MDScreen):
         ]:
             _bool_set(key, wid)
 
-        if self._get_widget("gamemode"):
-            self.ids.gamemode.text = props.get("gamemode", "survival")
-        if self._get_widget("difficulty"):
-            self.ids.difficulty.text = props.get("difficulty", "easy")
-
-        if self._get_widget("max_players"):
-            self.ids.max_players.text = props.get("max-players", "16")
-        if self._get_widget("max_tick_time"):
-            self.ids.max_tick_time.text = props.get("max-tick-time", "60000")
-        if self._get_widget("max_world_size"):
-            self.ids.max_world_size.text = props.get("max-world-size", "29999984")
-        if self._get_widget("pause_when_empty"):
-            self.ids.pause_when_empty.text = props.get(
-                "pause-when-empty-seconds", "60"
-            )
-        if self._get_widget("player_idle_timeout"):
-            self.ids.player_idle_timeout.text = props.get("player-idle-timeout", "0")
-        if self._get_widget("spawn_protection"):
-            self.ids.spawn_protection.text = props.get("spawn-protection", "16")
+        for wid, key, default in [
+            ("gamemode", "gamemode", "survival"),
+            ("difficulty", "difficulty", "easy"),
+            ("max_players", "max-players", "16"),
+            ("max_tick_time", "max-tick-time", "60000"),
+            ("max_world_size", "max-world-size", "29999984"),
+            ("pause_when_empty", "pause-when-empty-seconds", "60"),
+            ("player_idle_timeout", "player-idle-timeout", "0"),
+            ("spawn_protection", "spawn-protection", "16"),
+        ]:
+            w = self._get_widget(wid)
+            if w:
+                w.text = props.get(key, default)
 
         self.unsaved_changes = False
         self._hide_change_card()
@@ -3962,37 +4092,42 @@ class Server_Properties(MDScreen):
         ]:
             _bool_save(key, wid)
 
-        new_props["gamemode"] = self.ids.gamemode.text.lower()
-        new_props["difficulty"] = self.ids.difficulty.text.lower()
-
-        new_props["max-players"] = self.ids.max_players.text
-        new_props["max-tick-time"] = self.ids.max_tick_time.text
-        new_props["max-world-size"] = self.ids.max_world_size.text
-        new_props["pause-when-empty-seconds"] = self.ids.pause_when_empty.text
-        new_props["player-idle-timeout"] = self.ids.player_idle_timeout.text
-        new_props["spawn-protection"] = self.ids.spawn_protection.text
+        for wid, key in [
+            ("gamemode", "gamemode"),
+            ("difficulty", "difficulty"),
+            ("max_players", "max-players"),
+            ("max_tick_time", "max-tick-time"),
+            ("max_world_size", "max-world-size"),
+            ("pause_when_empty", "pause-when-empty-seconds"),
+            ("player_idle_timeout", "player-idle-timeout"),
+            ("spawn_protection", "spawn-protection"),
+        ]:
+            w = self._get_widget(wid)
+            if w:
+                new_props[key] = w.text
 
         props_file = os.path.join(self.server_path, "server.properties")
         try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(props_file), exist_ok=True)
             with open(props_file, "w", encoding="utf-8") as f:
                 for k, v in new_props.items():
                     f.write(f"{k}={v}\n")
-        except Exception as e:
-            print("Failed to save:", e)
+        except (PermissionError, OSError) as e:
+            print(f"[ERROR] Failed to save server.properties: {e}")
             return
 
         self.original_props = new_props.copy()
         self.unsaved_changes = False
         self._hide_change_card()
 
-        # If online and restart chosen → restart server
         if server_online and restart:
             try:
                 server_status_screen = self.manager.get_screen("status")
                 server_status_screen.restart_server()
                 print("[INFO] Properties saved and server restarted.")
             except Exception as e:
-                print("[ERROR] Failed to restart server:", e)
+                print(f"[ERROR] Failed to restart server: {e}")
 
     # ---------------- UI change detection ----------------
     def mark_change(self, *a):
@@ -4009,7 +4144,7 @@ class Server_Properties(MDScreen):
         if self.change_card:
             return
 
-        # Load server status
+        # Load server status safely
         server_status = "Offline"
         server_info_path = os.path.join(self.server_path, "server_info.json")
         if os.path.exists(server_info_path):
@@ -4017,8 +4152,8 @@ class Server_Properties(MDScreen):
                 with open(server_info_path, "r", encoding="utf-8") as f:
                     info = json.load(f)
                     server_status = info.get("server_status", "Offline")
-            except Exception as e:
-                print("[ERROR] Failed to read server_info.json:", e)
+            except (PermissionError, OSError, json.JSONDecodeError) as e:
+                print(f"[ERROR] Failed to read server_info.json: {e}")
 
         # Main card
         self.change_card = MDCard(
@@ -4027,7 +4162,7 @@ class Server_Properties(MDScreen):
             height=dp(160 if server_status == "Online" else 140),
             md_bg_color=(0.15, 0.15, 0.18, 1),
             padding=dp(16),
-            radius=[16, 16, 16, 16],
+            radius=[16] * 4,
             elevation=10,
         )
 
@@ -4047,15 +4182,10 @@ class Server_Properties(MDScreen):
             )
         )
 
-        # Restart checkbox row
+        # Restart checkbox row if server is online
         restart_checkbox = None
         if server_status == "Online":
-            restart_checkbox = MDCheckbox(
-                active=True,
-                size_hint=(None, None),
-                size=(dp(28), dp(28))
-            )
-
+            restart_checkbox = MDCheckbox(active=True, size_hint=(None, None), size=(dp(28), dp(28)))
             restart_label = MDLabel(
                 text="Restart required",
                 theme_text_color="Custom",
@@ -4064,27 +4194,14 @@ class Server_Properties(MDScreen):
                 valign="center",
                 size_hint_x=1,
             )
-
-            row = MDBoxLayout(
-                orientation="horizontal",
-                spacing=dp(8),
-                size_hint_y=None,
-                height=dp(40),
-                pos_hint={"center_x": 0.5},
-            )
+            row = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(40))
             row.add_widget(restart_checkbox)
             row.add_widget(restart_label)
             box.add_widget(row)
 
         # Buttons container
-        btns = MDBoxLayout(
-            orientation="horizontal",
-            spacing=dp(16),
-            size_hint_y=None,
-            height=dp(50),
-            padding=[dp(8), 0, dp(8), 0],
-        )
-
+        btns = MDBoxLayout(orientation="horizontal", spacing=dp(16), size_hint_y=None, height=dp(50),
+                           padding=[dp(8), 0, dp(8), 0])
         btns.add_widget(
             MDFlatButton(
                 text="Discard Changes",
@@ -4106,7 +4223,6 @@ class Server_Properties(MDScreen):
                 ),
             )
         )
-
         box.add_widget(btns)
         self.change_card.add_widget(box)
 
@@ -4160,31 +4276,29 @@ class Server_Properties(MDScreen):
         self.update_tab_colors(screen_name)
 
     def update_tab_colors(self, active_screen):
-        # Default = white
+        # Colors
         inactive_color = (1, 1, 1, 1)
         active_color = (0.25, 0.5, 1, 1)
 
-        # Reset all tabs to white
-        self.ids.tab_status.text_color = inactive_color
-        self.ids.tab_players.text_color = inactive_color
-        self.ids.tab_console.text_color = inactive_color
-        self.ids.tab_logs.text_color = inactive_color
-        self.ids.tab_props.text_color = inactive_color
-        self.ids.tab_home.text_color = inactive_color
+        # Map screen names to tab IDs
+        tab_mapping = {
+            "status": "tab_status",
+            "players": "tab_players",
+            "console": "tab_console",
+            "server_file": "tab_logs",
+            "server_properties": "tab_props",
+            "homescreen": "tab_home"
+        }
+
+        # Reset all tabs to inactive
+        for tab_id in tab_mapping.values():
+            if tab_id in self.ids:
+                self.ids[tab_id].text_color = inactive_color
 
         # Set active tab color
-        if active_screen == "status":
-            self.ids.tab_status.text_color = active_color
-        elif active_screen == "players":
-            self.ids.tab_players.text_color = active_color
-        elif active_screen == "console":
-            self.ids.tab_console.text_color = active_color
-        elif active_screen == "server_file":
-            self.ids.tab_logs.text_color = active_color
-        elif active_screen == "server_properties":
-            self.ids.tab_props.text_color = active_color
-        elif active_screen == "homescreen":
-            self.ids.tab_home.text_color = active_color
+        active_tab_id = tab_mapping.get(active_screen)
+        if active_tab_id and active_tab_id in self.ids:
+            self.ids[active_tab_id].text_color = active_color
 
     def adjust_value(self, wid, delta):
         """Increase or decrease a numeric text field value."""
@@ -4204,14 +4318,6 @@ class Server_Properties(MDScreen):
 class MainApp(MDApp):
     Window.maximize()
     max_ram = NumericProperty(0)
-    def on_start(self):
-        # ✅ Set icon here using .ico for Windows
-        icon_path = os.path.join("Icon", "logo.ico")  # make sure this exists
-        if os.path.exists(icon_path):
-            try:
-                Window.set_icon(icon_path)
-            except Exception as e:
-                print(f"Failed to set icon: {e}")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -4222,25 +4328,46 @@ class MainApp(MDApp):
             "ram": None,
         }
 
-    def build(self):
-        #set the kv_dir
-        kv_dir = "design_files"
-        # Load all KV files
-        Builder.load_file(os.path.join(kv_dir, "setup.kv"))
-        Builder.load_file(os.path.join(kv_dir, "status.kv"))
-        Builder.load_file(os.path.join(kv_dir, "players.kv"))
-        Builder.load_file(os.path.join(kv_dir, "server_file.kv"))
-        Builder.load_file(os.path.join(kv_dir, "console.kv"))
-        Builder.load_file(os.path.join(kv_dir, "properties.kv"))
-        Builder.load_file(os.path.join(kv_dir,"versions.kv"))
-        Builder.load_file(os.path.join(kv_dir, "home_screen.kv"))
-        Builder.load_file(os.path.join(kv_dir, "server_type.kv"))
-        Builder.load_file(os.path.join(kv_dir, "configuration.kv"))
-        Builder.load_file(os.path.join(kv_dir, "customization.kv"))
-        Builder.load_file(os.path.join(kv_dir, "whitelist.kv"))
-        Builder.load_file(os.path.join(kv_dir, "banned_players.kv"))
-        Builder.load_file(os.path.join(kv_dir, "ops.kv"))
+    def on_start(self):
+        # Set icon for Windows
+        base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(base_path, "Icon", "logo.ico")
+        if os.path.exists(icon_path):
+            try:
+                Window.set_icon(icon_path)
+            except Exception as e:
+                print(f"Failed to set icon: {e}")
 
+    def build(self):
+        # Determine base path for KV files and config
+        base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        kv_dir = os.path.join(base_path, "design_files")
+
+        # List of KV files
+        kv_files = [
+            "setup.kv",
+            "status.kv",
+            "players.kv",
+            "server_file.kv",
+            "console.kv",
+            "properties.kv",
+            "versions.kv",
+            "home_screen.kv",
+            "server_type.kv",
+            "configuration.kv",
+            "customization.kv",
+            "whitelist.kv",
+            "banned_players.kv",
+            "ops.kv"
+        ]
+
+        # Load all KV files
+        for kv in kv_files:
+            kv_path = os.path.join(kv_dir, kv)
+            if os.path.exists(kv_path):
+                Builder.load_file(kv_path)
+            else:
+                print(f"Warning: KV file not found: {kv_path}")
 
         # Screen Manager
         sm = ScreenManager(transition=NoTransition())
@@ -4264,30 +4391,27 @@ class MainApp(MDApp):
         sm.add_widget(Banned_Players(name="banned_players"))
         sm.add_widget(Server_Ops(name="ops"))
 
-        # Check setup file
-        config_path = "config.json"
+        # Config handling
+        config_path = os.path.join(base_path, "config.json")
         if os.path.exists(config_path):
             with open(config_path, "r") as f:
                 try:
                     config = json.load(f)
                 except json.JSONDecodeError:
                     config = {"setup": False}  # reset if corrupted
-
-            if config.get("setup", False):  # if "setup": true
-                home_screen = sm.get_screen("homescreen")
-                home_screen.on_pre_enter()
-                sm.current = "homescreen"
-            else:  # if "setup": false
-                Builder.load_file(os.path.join(kv_dir,"setup.kv"))
-                sm.current = "setup"
-
         else:
             # Create default config.json if not exists
             config = {"setup": False}
             with open(config_path, "w") as f:
                 json.dump(config, f, indent=4)
 
+        # Determine initial screen
+        if config.get("setup", False):
+            sm.get_screen("homescreen").on_pre_enter()
+            sm.current = "homescreen"
+        else:
             sm.current = "setup"
+
         return sm
 
 

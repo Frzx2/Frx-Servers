@@ -237,3 +237,5 @@ class Server_Folder(MDScreen):
         config["setup"] = True
         save_config(config)
         self.manager.current = "homescreen"
+
+

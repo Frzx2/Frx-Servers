@@ -6,13 +6,35 @@
         md_bg_color: 0.08, 0.08, 0.1, 1  # dark background
 
         # Top Title Bar
-        MDTopAppBar:
-            title: "Minecraft Server Manager"
-            elevation: 4
+        MDBoxLayout:
+            size_hint_y: None
+            height: "56dp"
             md_bg_color: 0.12, 0.12, 0.15, 1
-            title_color: 0.8, 0.9, 1, 1
-            left_action_items: [["server", lambda x: None]]
-            right_action_items: [["refresh", lambda x: root.load_servers()]]
+            padding: "10dp"
+            spacing: "10dp"
+
+            # Left Action Item (Server Icon)
+            MDIconButton:
+                icon: "server"
+                theme_text_color: "Custom"
+                text_color: 0.8, 0.9, 1, 1
+                on_release: None  # replace with desired callback
+
+            # Title Label
+            MDLabel:
+                text: "Minecraft Server Manager"
+                halign: "center"
+                valign: "middle"
+                theme_text_color: "Custom"
+                text_color: 0.8, 0.9, 1, 1
+                font_style: "H6"
+
+            # Right Action Item (Refresh Icon)
+            MDIconButton:
+                icon: "refresh"
+                theme_text_color: "Custom"
+                text_color: 0.8, 0.9, 1, 1
+                on_release: root.load_servers()
 
         # Controls Row: Search + Create + Config
         MDBoxLayout:

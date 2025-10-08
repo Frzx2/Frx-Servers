@@ -1,0 +1,83 @@
+('D:\\Minecraft Server\\Server_Manger\\build\\PlayItApp\\PlayItApp.pkg',
+ {'BINARY': True,
+  'DATA': True,
+  'EXECUTABLE': True,
+  'EXTENSION': True,
+  'PYMODULE': True,
+  'PYSOURCE': True,
+  'PYZ': False,
+  'SPLASH': True,
+  'SYMLINK': False},
+ [('pyi-contents-directory _internal', '', 'OPTION'),
+  ('PYZ-00.pyz',
+   'D:\\Minecraft Server\\Server_Manger\\build\\PlayItApp\\PYZ-00.pyz',
+   'PYZ'),
+  ('struct',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\build\\PlayItApp\\localpycs\\struct.pyc',
+   'PYMODULE'),
+  ('pyimod01_archive',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\build\\PlayItApp\\localpycs\\pyimod01_archive.pyc',
+   'PYMODULE'),
+  ('pyimod02_importers',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\build\\PlayItApp\\localpycs\\pyimod02_importers.pyc',
+   'PYMODULE'),
+  ('pyimod03_ctypes',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\build\\PlayItApp\\localpycs\\pyimod03_ctypes.pyc',
+   'PYMODULE'),
+  ('pyimod04_pywin32',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\build\\PlayItApp\\localpycs\\pyimod04_pywin32.pyc',
+   'PYMODULE'),
+  ('pyiboot01_bootstrap',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\loader\\pyiboot01_bootstrap.py',
+   'PYSOURCE'),
+  ('pyi_rth_inspect',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_inspect.py',
+   'PYSOURCE'),
+  ('pyi_rth_kivy',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_kivy.py',
+   'PYSOURCE'),
+  ('pyi_rth_setuptools',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_setuptools.py',
+   'PYSOURCE'),
+  ('pyi_rth_multiprocessing',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_multiprocessing.py',
+   'PYSOURCE'),
+  ('pyi_rth_gstreamer',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_gstreamer.py',
+   'PYSOURCE'),
+  ('pyi_rth_pkgutil',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_pkgutil.py',
+   'PYSOURCE'),
+  ('pyi_rth_pythoncom',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks\\pyi_rth_pythoncom.py',
+   'PYSOURCE'),
+  ('pyi_rth_pywintypes',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks\\pyi_rth_pywintypes.py',
+   'PYSOURCE'),
+  ('pyi_rth__tkinter',
+   'D:\\Minecraft '
+   'Server\\Server_Manger\\.venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth__tkinter.py',
+   'PYSOURCE'),
+  ('Frx', 'D:\\Minecraft Server\\Server_Manger\\Frx.py', 'PYSOURCE')],
+ 'python313.dll',
+ True,
+ False,
+ False,
+ [],
+ None,
+ None,
+ None)

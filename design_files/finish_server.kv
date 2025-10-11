@@ -2,88 +2,108 @@
     name: "finish_server"
 
     MDBoxLayout:
-        orientation: "vertical"
+        orientation: "horizontal"
         padding: "20dp"
         spacing: "20dp"
-        md_bg_color: 0.1, 0.1, 0.12, 1   # dark background
+        md_bg_color: 0.05, 0.05, 0.07, 1  # very dark background
 
-        Widget:  # pushes main card to vertical center
-
+        # --------------------- Left Panel: Controls ---------------------
         MDCard:
-            id: main_card
-            orientation: "vertical"
-            size_hint: 0.85, None
-            height: self.minimum_height
-            padding: "30dp"
-            spacing: "25dp"
-            pos_hint: {"center_x": 0.5}
+            id: control_card
+            size_hint_x: 0.35
             radius: [25, 25, 25, 25]
-            md_bg_color: 0.16, 0.16, 0.18, 1   # dark grey card
-            elevation: 10
-
-            MDLabel:
-                id: ready
-                text: "Press Start to Create the Server"
-                halign: "center"
-                theme_text_color: "Custom"
-                text_color: 0.6, 0.8, 1, 1   # bluish accent
-                font_style: "H5"
-                size_hint_y: None
-                height: self.texture_size[1]
-
-            MDSpinner:
-                id: server_spinner
-                size_hint: None, None
-                size: "80dp", "80dp"
-                active: False
-                pos_hint: {"center_x": 0.5}
-                color: 0.2, 0.6, 1, 1   # blue spinner glow
-
-            MDLabel:
-                id: error_label
-                text: ""
-                halign: "center"
-                theme_text_color: "Custom"
-                text_color: 1, 0.4, 0.4, 1   # red for error
-                font_style: "Subtitle1"
-                size_hint_y: None
-                height: self.texture_size[1]
-
-        # Button Card below main card
-        MDCard:
-            orientation: "horizontal"
-            size_hint: 0.6, None
-            height: "60dp"
-            padding: "10dp"
-            spacing: "20dp"
-            pos_hint: {"center_x": 0.5}
-            radius: [20, 20, 20, 20]
             md_bg_color: 0.16, 0.16, 0.18, 1
-            elevation: 8
+            elevation: 14
+            padding: "20dp"
 
-            MDRaisedButton:
-                text: "Back"
-                md_bg_color: 0.25, 0.25, 0.25, 1
-                text_color: 1, 1, 1, 1
-                elevation: 6
-                on_release: root.back()
+            BoxLayout:
+                orientation: "vertical"
+                spacing: "20dp"
 
-            MDRaisedButton:
-                id: start
-                text: "Start"
-                md_bg_color: 0.2, 0.6, 1, 1   # blue highlight
-                text_color: 1, 1, 1, 1
-                elevation: 8
-                size_hint_x: 1.5  # bigger than others
-                on_release: root.finish()
+                # Main Ready Label
+                MDLabel:
+                    id: ready
+                    text: "Ready to Start Server"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.4, 0.8, 1, 1
+                    font_style: "H5"
+                    size_hint_y: None
+                    height: self.texture_size[1]
 
-            MDRaisedButton:
-                text: "Next"
-                id: next_btn
-                md_bg_color: 0.2, 0.6, 1, 1
-                text_color: 1, 1, 1, 1
-                elevation: 8
-                on_release: root.next()
-                disabled: True
+                # -------- Additional Labels ----------
+                MDLabel:
+                    id: info_label
+                    text: "Select server options and press Start"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.7, 0.7, 0.9, 1
+                    font_style: "Subtitle1"
+                    size_hint_y: None
+                    height: self.texture_size[1]
 
-        Widget:  # pushes everything to vertical center
+                # Spinner
+                MDSpinner:
+                    id: server_spinner
+                    size_hint: None, None
+                    size: "60dp", "60dp"
+                    active: False
+                    pos_hint: {"center_x": 0.5}
+                    color: 0.2, 0.6, 1, 1
+
+                # Buttons
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "15dp"
+
+                    MDRaisedButton:
+                        text: "Start"
+                        id: start
+                        md_bg_color: 0.2, 0.8, 0.2, 1  # green
+                        text_color: 1, 1, 1, 1
+                        elevation: 10
+                        size_hint_x: 1
+                        on_release: root.finish()
+
+                    MDRaisedButton:
+                        text: "Back"
+                        md_bg_color: 0.25, 0.25, 0.25, 1
+                        text_color: 1, 1, 1, 1
+                        elevation: 8
+                        size_hint_x: 1
+                        on_release: root.back()
+
+                    MDRaisedButton:
+                        text: "Next"
+                        id: next_btn
+                        md_bg_color: 0.2, 0.6, 1, 1
+                        text_color: 1, 1, 1, 1
+                        elevation: 8
+                        size_hint_x: 1
+                        on_release: root.next()
+                        disabled: True
+
+        # --------------------- Right Panel: Server Log ---------------------
+        MDCard:
+            id: log_card
+            size_hint_x: 0.65
+            md_bg_color: 0.12, 0.12, 0.15, 1
+            radius: [25, 25, 25, 25]
+            elevation: 14
+            padding: "15dp"
+
+            BoxLayout:
+                orientation: "vertical"
+                spacing: "10dp"
+
+                MDLabel:
+                    text: "Server Log"
+                    halign: "center"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.5, 0.8, 1, 1
+
+                ScrollView:
+                    MDList:
+                        id: update_log
+                        padding: "10dp"

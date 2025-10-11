@@ -930,26 +930,39 @@ class Server_customization(MDScreen):
     # -----------------------------
     def save_customization(self):
         """
-        Save seed and world folder to app.server_data.
-        Performs basic validation before saving.
+        Save seed or world folder to app.server_data.
+        Ensures only one of them is used to avoid conflicts.
         """
         app = MDApp.get_running_app()
         seed_input = self.ids.seed_input.text.strip()
+        selected_world = self.world_folder
 
-        # Validate and save seed
-        if seed_input.isdigit():
-            app.server_data["world_seed"] = int(seed_input)
-        elif seed_input:
-            app.server_data["world_seed"] = seed_input
+        # Case 1: Both selected → show error
+        if seed_input and selected_world:
+            self.ids.selected_folder_label.text = "Choose either a Seed or a World — not both!"
+            return
 
-        # Validate and save world folder
-        if self.world_folder:
-            import os
-            if os.path.exists(os.path.join(self.world_folder, "level.dat")):
-                app.server_data["world_folder"] = self.world_folder
+        # Case 2: Only seed
+        if seed_input:
+            if seed_input.isdigit():
+                app.server_data["world_seed"] = int(seed_input)
+            else:
+                app.server_data["world_seed"] = seed_input
+            app.server_data.pop("world_folder", None)  # clear any old value
+
+        # Case 3: Only custom world
+        elif selected_world:
+            if os.path.exists(os.path.join(selected_world, "level.dat")):
+                app.server_data["world_folder"] = selected_world
+                app.server_data.pop("world_seed", None)
             else:
                 self.ids.selected_folder_label.text = "Invalid world folder!"
                 return
+
+        # Case 4: Neither → still okay, generates default new world
+        else:
+            app.server_data.pop("world_seed", None)
+            app.server_data.pop("world_folder", None)
 
         # Move to next screen
         if self.manager:
@@ -1004,218 +1017,171 @@ class Finalize_Server(MDScreen):
             self.ids.error_label.text = "You must accept the EULA to continue."
 class Finish_Server(MDScreen):
     """
-    A screen class responsible for downloading, installing, and configuring
-    a Minecraft server based on user selections. Fully cross-platform:
-    Linux, Windows, Raspberry Pi.
+    Handles downloading, setting up, and configuring a Minecraft server.
+    Uses right-panel log instead of error labels. Fully cross-platform.
     """
 
+    def on_pre_enter(self, *args):
+        """Populate server info label and clear the log when screen is entered."""
+        app = MDApp.get_running_app()
+        data = app.server_data
+
+        info_text = (
+            f"Server Name: {data.get('server_name', '')}\n"
+            f"Server Type: {data.get('server_type', '')}\n"
+            f"Version: {data.get('version', '')}\n"
+            f"Selected RAM: {data.get('ram', '')} MB"
+        )
+        self.ids.info_label.text = info_text
+        self.ids.update_log.clear_widgets()
+        self.ids.server_spinner.active = False
+        self.ids.next_btn.disabled = True
+        self.ids.start.disabled = False
+        self.ids.ready.text = "Ready to Start Server"
+
     def toggle_spinner(self, state: bool):
-        """Toggle the loading spinner animation in the UI."""
+        """Toggle the spinner animation."""
         self.ids.server_spinner.active = state
 
+    def update_log(self, msg: str):
+        """Append a message to the server log panel safely from any thread."""
+        def _update(dt):
+            self.ids.update_log.add_widget(OneLineListItem(text=msg))
+            self.ids.update_log.scroll_y = 0  # scroll to bottom
+
+        Clock.schedule_once(_update)
+        print(msg)
+
     def finish(self):
-        """
-        Entry point when the user clicks 'Finish'.
-        Disables buttons and starts the download/setup thread.
-        """
-        self.ids.next_btn.disabled = True
+        """Start the server setup process in a background thread."""
         self.ids.start.disabled = True
-        self.ids.ready.text = "Getting the Server Ready For You..."
+        self.ids.next_btn.disabled = True
+        self.ids.ready.text = "Preparing Server..."
         self.toggle_spinner(True)
         Thread(target=self._finish_thread, daemon=True).start()
 
     def _finish_thread(self):
-        """
-        Handles downloading the server files from the internet.
-        Setup is handled in setup_server() after download.
-        """
+        """Download and set up the server files."""
         app = MDApp.get_running_app()
         data = app.server_data
 
         server_name = data.get("server_name")
         version = data.get("version")
         server_type = data.get("server_type")
-
-        def update_label(msg):
-            """Update the UI label safely from a background thread."""
-            Clock.schedule_once(lambda dt: setattr(self.ids.error_label, "text", msg))
-            print(msg)
+        server_ram = data.get("ram", 2048)
+        world_seed = data.get("world_seed")
+        custom_world = data.get("world_folder")
 
         if not all([server_name, version, server_type]):
-            update_label("Error: Missing server information.")
+            self.update_log("Error: Missing server information.")
             self.toggle_spinner(False)
             return
 
         try:
-            # ---- Step 1: Load config and create server folder ----
+            # Load config
             config_path = Path("config.json")
-            if config_path.exists():
-                config = json.loads(config_path.read_text())
-            else:
-                config = {}
-
-            # Use OS-independent path handling
+            config = json.loads(config_path.read_text()) if config_path.exists() else {}
             base_location = Path(config.get("server_location", Path.cwd()))
             server_folder = base_location / server_name
             server_folder.mkdir(parents=True, exist_ok=True)
-            update_label(f"Server directory created at: {server_folder}")
+            self.update_log(f"Server folder created at: {server_folder}")
 
-            # ---- Step 2: Download the appropriate server file ----
-            server_type_lower = server_type.lower()
+            # Determine server JAR path
             jar_path = server_folder / "server.jar"
 
-            if server_type_lower == "vanilla":
-                update_label(f"Downloading Vanilla {version} server...")
-                manifest = requests.get("https://launchermeta.mojang.com/mc/game/version_manifest.json").json()
-                version_info = next((v for v in manifest["versions"] if v["id"] == version), None)
-                if not version_info:
-                    update_label(f"Version {version} not found.")
-                    return
-                version_json = requests.get(version_info["url"]).json()
-                server_url = version_json["downloads"]["server"]["url"]
-                self._download_file(server_url, jar_path, update_label)
+            # Download server
+            self._download_server(server_type.lower(), version, jar_path)
 
-            elif server_type_lower == "paper":
-                update_label(f"Downloading Paper {version} server...")
-                api_url = f"https://api.papermc.io/v2/projects/paper/versions/{version}"
-                builds = requests.get(api_url).json().get("builds")
-                if not builds:
-                    update_label(f"No builds found for Paper {version}.")
-                    return
-                latest_build = max(builds)
-                paper_url = f"https://api.papermc.io/v2/projects/paper/versions/{version}/builds/{latest_build}/downloads/paper-{version}-{latest_build}.jar"
-                self._download_file(paper_url, jar_path, update_label)
+            # Setup server
+            self.setup_server(server_folder, jar_path, server_type.lower(), server_ram, world_seed, custom_world)
 
-            elif server_type_lower == "fabric":
-                update_label(f"Downloading Fabric {version} server...")
-                fabric_url = f"https://meta.fabricmc.net/v2/versions/loader/{version}/0.15.7/1.0.0/server/jar"
-                self._download_file(fabric_url, jar_path, update_label)
-
-            elif server_type_lower == "forge":
-                update_label("Finding recommended Forge version...")
-                promos = requests.get("https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json").json()
-                forge_version = promos["promos"].get(f"{version}-recommended")
-                if not forge_version:
-                    update_label(f"No recommended Forge version found for Minecraft {version}.")
-                    return
-
-                installer_name = f"forge-{version}-{forge_version}-installer.jar"
-                installer_path = server_folder / installer_name
-                installer_url = f"https://maven.minecraftforge.net/net/minecraftforge/forge/{version}-{forge_version}/{installer_name}"
-                update_label(f"Downloading Forge {forge_version} installer...")
-                self._download_file(installer_url, installer_path, update_label)
-                update_label("Forge installer downloaded successfully.")
-
-            else:
-                update_label(f"Unknown server type: {server_type}")
-                return
-
-            update_label("Download complete. Starting server setup...")
-            self.setup_server()
-
-        except requests.exceptions.RequestException as e:
-            update_label(f"Download failed: {e}")
-            self.toggle_spinner(False)
         except Exception as e:
-            update_label(f"An error occurred: {e}")
+            self.update_log(f"Error: {e}")
             self.toggle_spinner(False)
 
-    def _download_file(self, url, dest_path, update_label, chunk_size=32 * 1024):
-        """
-        Download a file in chunks to avoid memory issues.
-        """
-        update_label(f"Downloading: {url}")
+    def _download_server(self, server_type, version, jar_path):
+        """Download the server JAR based on type."""
+        if server_type == "vanilla":
+            self.update_log(f"Downloading Vanilla {version} server...")
+            manifest = requests.get("https://launchermeta.mojang.com/mc/game/version_manifest.json").json()
+            version_info = next((v for v in manifest["versions"] if v["id"] == version), None)
+            if not version_info:
+                self.update_log(f"Version {version} not found.")
+                return
+            version_json = requests.get(version_info["url"]).json()
+            server_url = version_json["downloads"]["server"]["url"]
+            self._download_file(server_url, jar_path)
+
+        elif server_type == "paper":
+            self.update_log(f"Downloading Paper {version} server...")
+            api_url = f"https://api.papermc.io/v2/projects/paper/versions/{version}"
+            builds = requests.get(api_url).json().get("builds")
+            if not builds:
+                self.update_log(f"No builds found for Paper {version}.")
+                return
+            latest_build = max(builds)
+            paper_url = f"https://api.papermc.io/v2/projects/paper/versions/{version}/builds/{latest_build}/downloads/paper-{version}-{latest_build}.jar"
+            self._download_file(paper_url, jar_path)
+
+        elif server_type == "fabric":
+            self.update_log(f"Downloading Fabric {version} server...")
+            fabric_url = f"https://meta.fabricmc.net/v2/versions/loader/{version}/0.15.7/1.0.0/server/jar"
+            self._download_file(fabric_url, jar_path)
+
+        elif server_type == "forge":
+            self.update_log(f"Downloading Forge installer for {version}...")
+            promos = requests.get("https://files.minecraftforge.net/maven/net/minecraftforge/forge/promotions_slim.json").json()
+            forge_version = promos["promos"].get(f"{version}-recommended")
+            if not forge_version:
+                self.update_log(f"No recommended Forge version for {version}.")
+                return
+            installer_name = f"forge-{version}-{forge_version}-installer.jar"
+            installer_path = jar_path.parent / installer_name
+            installer_url = f"https://maven.minecraftforge.net/net/minecraftforge/forge/{version}-{forge_version}/{installer_name}"
+            self._download_file(installer_url, installer_path)
+            self.update_log("Forge installer downloaded.")
+
+        else:
+            self.update_log(f"Unknown server type: {server_type}")
+
+    def _download_file(self, url, dest_path, chunk_size=32*1024):
+        """Download a file with progress."""
+        self.update_log(f"Downloading: {url}")
         response = requests.get(url, stream=True, timeout=30)
         response.raise_for_status()
         with open(dest_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=chunk_size):
                 if chunk:
                     f.write(chunk)
-        update_label(f"Saved: {dest_path}")
+        self.update_log(f"Saved: {dest_path}")
 
-    def setup_server(self):
-        """
-        Handles post-download tasks:
-        - Forge installation if needed
-        - Accept EULA
-        - Run first server start to generate files
-        - Apply custom seed
-        - Save server metadata
-        Fully cross-platform: handles Windows and Linux/Raspberry Pi paths.
-        """
-        app = MDApp.get_running_app()
-        data = app.server_data
-
-        server_name = data.get("server_name")
-        server_type = data.get("server_type", "").lower()
-        version = data.get("version")
-        server_ram = data.get("ram", 2048)
-        world_seed = data.get("world_seed")
-        custom_world = data.get("world_folder")
-
-        def update_label(msg):
-            Clock.schedule_once(lambda dt: setattr(self.ids.error_label, "text", msg))
-            print(msg)
-
+    def setup_server(self, server_folder, jar_path, server_type, server_ram, world_seed, custom_world):
+        """Setup server files, apply seed/world, run first start, accept EULA."""
         try:
-            # Load base folder
-            config_path = Path("config.json")
-            config = json.loads(config_path.read_text()) if config_path.exists() else {}
-            base_location = Path(config.get("server_location", Path.cwd()))
-            server_folder = base_location / server_name
-
-            # Handle custom world before first run
+            # Custom world
             if custom_world and Path(custom_world).exists():
                 target_world = server_folder / "world"
-                update_label("Copying custom world...")
                 if target_world.exists():
                     shutil.rmtree(target_world)
                 shutil.copytree(custom_world, target_world)
-                update_label("Custom world copied successfully.")
+                self.update_log("Custom world applied.")
 
-            # Helper: apply custom world seed
-            def apply_seed():
-                if world_seed:
-                    props_file = server_folder / "server.properties"
-                    if props_file.exists():
-                        with open(props_file, "a") as f:
-                            f.write(f"\nlevel-seed={world_seed}\n")
-                        update_label(f"Applied custom seed: {world_seed}")
-
-            # ---------- Forge setup ----------
-            if server_type == "forge":
-                installer_path = next((p for p in server_folder.iterdir() if "installer.jar" in p.name), None)
-                if not installer_path:
-                    update_label("Forge installer not found!")
-                    return
-
-                # Run installer
-                subprocess.run(["java", "-jar", str(installer_path), "--installServer"], cwd=server_folder, check=True)
-                update_label("Forge installer finished.")
-
-                # Find the generated Forge jar
-                forge_jar = next((p for p in server_folder.iterdir() if p.name.endswith("-shim.jar")), None)
-                if not forge_jar:
-                    update_label("Forge jar not found after installation!")
-                    return
-
-                jar_path = server_folder / "server.jar"
-                shutil.copy2(forge_jar, jar_path)
-                update_label("Forge jar copied to server.jar")
-
-            # ---------- Vanilla/Paper/Fabric setup ----------
-            else:
-                jar_path = server_folder / "server.jar"
+            # Apply seed
+            if world_seed:
+                props_file = server_folder / "server.properties"
+                props_file.touch(exist_ok=True)
+                with open(props_file, "a") as f:
+                    f.write(f"\nlevel-seed={world_seed}\n")
+                self.update_log(f"Applied seed: {world_seed}")
 
             # Accept EULA
             eula_file = server_folder / "eula.txt"
             eula_file.write_text("eula=true\n")
-            update_label("EULA accepted.")
+            self.update_log("EULA accepted.")
 
-            # Load java path from config
-            java_path = config.get("java_path", "java")
-
-            # Run server for first start
+            # Start server for first run
+            java_path = "java"
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
             proc = subprocess.Popen(
                 [java_path, f"-Xmx{server_ram}M", "-Xms1024M", "-jar", str(jar_path), "nogui"],
                 cwd=server_folder,
@@ -1224,58 +1190,53 @@ class Finish_Server(MDScreen):
                 stdin=subprocess.PIPE,
                 universal_newlines=True,
                 encoding="utf-8",
-                errors="ignore"
+                errors="ignore",
+                creationflags=creationflags
             )
 
-            done_seen = False
             for line in proc.stdout:
                 line = line.strip()
                 if line:
-                    update_label(line)
+                    self.update_log(line)
                 if "Done" in line or (server_type == "paper" and "Timings Reset" in line):
-                    done_seen = True
-                    update_label("Initial server start complete.")
+                    self.update_log("Initial server start complete.")
                     break
 
-            if done_seen:
-                time.sleep(3)
-                try:
-                    proc.stdin.write("stop\n")
-                    proc.stdin.flush()
-                    proc.wait(timeout=10)
-                except Exception:
-                    proc.kill()
+            try:
+                proc.stdin.write("stop\n")
+                proc.stdin.flush()
+                proc.wait(timeout=10)
+                self.update_log("Server stopped after first run.")
+            except Exception:
+                proc.kill()
+                self.update_log("Server killed after timeout.")
 
-            apply_seed()
-
-            # Save server metadata
+            # Save metadata
             server_info = {
-                "server_name": server_name,
+                "server_name": server_folder.name,
                 "server_ram": server_ram,
                 "server_type": server_type,
-                "server_version": version,
+                "server_version": server_folder.name,
                 "server_status": "Offline"
             }
             with open(server_folder / "server_info.json", "w") as f:
                 json.dump(server_info, f, indent=4)
 
-            update_label("✅ Server Setup Complete!")
+            self.update_log("Server setup complete.")
             self.toggle_spinner(False)
             self.ids.next_btn.disabled = False
             self.ids.start.disabled = False
 
         except Exception as e:
-            update_label(f"Error during setup: {e}")
+            self.update_log(f"Setup error: {e}")
             self.toggle_spinner(False)
 
+    def back(self):
+        self.manager.current = "finalize"
+
     def next(self):
-        """Go to the home screen."""
         self.manager.current = "homescreen"
 
-    def back(self):
-        """Return to the previous screen."""
-        self.manager.current = "finalize"
-        self.ids.start.disabled = False
 
 
 class Configuration(MDScreen):
@@ -1813,13 +1774,18 @@ class Server_Status(MDScreen):
 
         def launch_server():
             try:
+                creationflags = 0
+                if sys.platform == "win32":
+                    creationflags = subprocess.CREATE_NO_WINDOW
+
                 self.process = subprocess.Popen(
                     java_cmd,
                     cwd=server_folder,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    text=True
+                    text=True,
+                    creationflags=creationflags
                 )
                 self.running = True
 
@@ -1922,11 +1888,16 @@ class Server_Status(MDScreen):
 
         def _run_playit():
             try:
+                creationflags = 0
+                if sys.platform == "win32":
+                    creationflags = subprocess.CREATE_NO_WINDOW
+
                 self.playit_process = subprocess.Popen(
                     ["playit.exe"],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    text=True
+                    text=True,
+                    creationflags=creationflags
                 )
 
                 for line in self.playit_process.stdout:

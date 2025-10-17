@@ -25,21 +25,8 @@
                 halign: "center"
                 theme_text_color: "Custom"
                 text_color: 1, 1, 1, 1
-
             MDLabel:
-                text: "1. Find Java Path."
-                halign: "center"
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, 1
-
-            MDLabel:
-                text: "2. Configure your server tunnel."
-                halign: "center"
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, 1
-
-            MDLabel:
-                text: "3. Make Sure You have Playit.gg Configured so that The server works."
+                text: "Make Sure You have Playit.gg Configured so that The server works."
                 halign: "center"
                 theme_text_color: "Custom"
                 text_color: 1, 1, 1, 1
@@ -66,106 +53,6 @@
                 elevation: 8
                 on_release: app.stop()
 
-
-<Java_detection>:
-    name: "java_detection"
-
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "15dp"
-        md_bg_color: 0.1, 0.1, 0.12, 1
-
-        MDBoxLayout:
-            orientation: "horizontal"
-            spacing: "10dp"
-            size_hint_y: None
-            height: "50dp"
-
-            MDIcon:
-                icon: "language-java"
-                font_size: "36sp"
-                theme_text_color: "Custom"
-                text_color: 1, 0.4, 0.2, 1
-
-            MDLabel:
-                text: "Java Detection"
-                font_style: "H5"
-                bold: True
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, 1
-                halign: "left"
-
-        MDSeparator:
-            color: 0.3, 0.3, 0.35, 1
-
-        MDCard:
-            orientation: "vertical"
-            padding: "20dp"
-            spacing: "10dp"
-            size_hint_y: None
-            height: "420dp"
-            radius: [16, 16, 16, 16]
-            md_bg_color: 0.16, 0.16, 0.18, 1
-            elevation: 8
-
-            MDLabel:
-                id: java_display_logo
-                text: "Step 1: Select or enter your Java installation"
-                halign: "center"
-                theme_text_color: "Custom"
-                text_color: 1, 1, 1, 1
-
-            MDTextField:
-                id: java_path_input
-                hint_text: "Selected Java path"
-                mode: "rectangle"
-                readonly: True
-                size_hint_x: 1
-                text_color_normal: 1, 1, 1, 1
-                text_color_focus: 1, 1, 1, 1
-                hint_text_color_normal: 1, 1, 1, 0.7
-                hint_text_color_focus: 1, 1, 1, 0.7
-                line_color_focus: 1, 1, 1, 1
-                line_color_normal: 1, 1, 1, 0.7
-
-            ScrollView:
-                size_hint_y: 0.5
-                do_scroll_x: False
-                bar_width: "6dp"
-
-                MDList:
-                    id: java_list
-                    adaptive_height: True
-
-            MDRaisedButton:
-                text: "Select Java File"
-                md_bg_color: 0.2, 0.6, 1, 1
-                text_color: 1, 1, 1, 1
-                size_hint_x: 1
-                on_release: root.select_java_file()
-
-        Widget:
-
-        MDBoxLayout:
-            orientation: "horizontal"
-            spacing: "15dp"
-            size_hint_y: None
-            height: "50dp"
-
-            MDRaisedButton:
-                text: "Back"
-                md_bg_color: 0.25, 0.25, 0.25, 1
-                text_color: 1, 1, 1, 1
-                size_hint_x: 0.5
-                on_release: app.root.current = "setup"
-
-            MDRaisedButton:
-                text: "Confirm"
-                md_bg_color: 0.2, 0.6, 1, 1
-                text_color: 1, 1, 1, 1
-                size_hint_x: 0.5
-                on_release: root.save_java_file()
 # -------------------------------
 # Server Folder Selection Screen
 # -------------------------------

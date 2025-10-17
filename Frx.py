@@ -14,6 +14,7 @@ from threading import Thread
 from tkinter import filedialog
 import tkinter as tk
 import webbrowser
+import glob
 
 # ─── External Libraries ───────────────────────────
 import psutil
@@ -65,9 +66,23 @@ from kivymd.uix.spinner import MDSpinner
 from kivymd.icon_definitions import md_icons
 # ─── Project Modules ──────────────────────────────
 from setup import Setup
-from setup import Java_detection
 from setup import Server_Folder
 
+
+def load_config():
+    """Load config from JSON file, return empty dict if missing or invalid."""
+    if os.path.exists(CONFIG_PATH) and os.path.getsize(CONFIG_PATH) > 0:
+        try:
+            with open(CONFIG_PATH, "r") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+def save_config(config):
+    """Save config dictionary to JSON file."""
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=4)
 CONFIG_PATH = "config.json"
 UPDATE_INTERVAL = 5  # seconds; configurable interval for status updates
 
@@ -966,7 +981,7 @@ class Server_customization(MDScreen):
 
         # Move to next screen
         if self.manager:
-            self.manager.current = "finalize"
+            self.manager.current = "JavaDetection"
 
     # -----------------------------
     # Navigation
@@ -975,6 +990,251 @@ class Server_customization(MDScreen):
         """Go back to Server Name & RAM selection screen."""
         if self.manager:
             self.manager.current = "name_and_ram"
+class Java_Detection(MDScreen):
+    JAVA_COMPATIBILITY = {
+        # Minecraft version → Required Java version
+        "1.1": 6, "1.2": 6, "1.3": 6, "1.4": 6, "1.5": 6,
+        "1.6": 7, "1.7": 7, "1.8": 8, "1.9": 8, "1.10": 8,
+        "1.11": 8, "1.12": 8, "1.13": 8, "1.14": 8, "1.15": 8,
+        "1.16": 8, "1.17": 16, "1.18": 17, "1.19": 17,
+        "1.20": 20, "1.21": 21
+    }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.file_manager = MDFileManager(
+            exit_manager=self.close_file_manager,
+            select_path=self.select_java_file_path,
+            preview=False
+        )
+
+        self.config = load_config()
+        self.selected_java_path = None
+        self.java_info_cache = {}
+
+    # -------------------------------
+    # Screen enter
+    # -------------------------------
+    def on_enter(self):
+        container = self.ids.java_list
+        container.clear_widgets()
+
+        app = MDApp.get_running_app()
+        server_data = getattr(app, "server_data", {})
+        mc_version_full = server_data.get("version", "1.16.5")
+
+        # Only take first two version parts (e.g., 1.21.3 → 1.21)
+        mc_major_minor = ".".join(mc_version_full.split(".")[:2])
+
+        # Get required Java (ignore server type)
+        required_java = self.JAVA_COMPATIBILITY.get(mc_major_minor, 8)
+
+        java_paths = self.get_java_versions()
+        if not java_paths:
+            self.ids.log_label.text = "No Java installations found. Please select one manually."
+            return
+
+        # Display info for each Java version
+        for path in java_paths:
+            self.add_java_card(path, container, required_java)
+
+        # Info message
+        self.ids.log_label.text = (
+            f"For Minecraft {mc_version_full}, Java {required_java}+ is recommended. "
+            f"Older versions may cause issues."
+        )
+
+    # -------------------------------
+    # Add card for each detected Java
+    # -------------------------------
+    def add_java_card(self, path, container, required_java):
+        card = MDCard(
+            orientation="horizontal",
+            padding=dp(10),
+            spacing=dp(10),
+            size_hint_y=None,
+            height=dp(75),
+            md_bg_color=(0.95, 0.95, 0.95, 1),
+            ripple_behavior=True
+        )
+
+        labels_box = BoxLayout(orientation="vertical", spacing=dp(2))
+
+        version_label = MDLabel(
+            text="Checking version...",
+            font_style="Subtitle1",
+            theme_text_color="Custom",
+            text_color=(0, 0, 0, 1)
+        )
+
+        path_label = MDLabel(
+            text=path,
+            font_style="Caption",
+            theme_text_color="Custom",
+            text_color=(0.1, 0.1, 0.1, 0.9)
+        )
+
+        labels_box.add_widget(version_label)
+        labels_box.add_widget(path_label)
+
+        add_btn = MDRaisedButton(
+            text="Select",
+            md_bg_color=(0.1, 0.6, 0.2, 1),
+            text_color=(1, 1, 1, 1),
+            size_hint_x=None,
+            width=dp(90),
+            on_release=lambda x, val=path: self.select_java(val)
+        )
+
+        card.add_widget(labels_box)
+        card.add_widget(add_btn)
+        container.add_widget(card)
+
+        # Run async Java version check
+        Clock.schedule_once(lambda dt: self.async_check_version(path, version_label, required_java), 0)
+
+    # -------------------------------
+    # Lightweight async Java version fetch
+    # -------------------------------
+    def async_check_version(self, path, version_label, required_java):
+        if path in self.java_info_cache:
+            version_label.text = self.java_info_cache[path]
+            return
+
+        def get_version():
+            try:
+                result = subprocess.run([path, "-version"], capture_output=True, text=True, timeout=2)
+                output = (result.stderr or result.stdout).lower()
+                version = self.extract_java_version(output)
+                self.java_info_cache[path] = version
+                return version
+            except Exception:
+                return "Unknown"
+
+        from threading import Thread
+
+        def background():
+            version = get_version()
+
+            # Default text and color
+            display_text = "Java version not detected"
+            color = (0, 0, 0, 1)
+
+            if version and "unknown" not in version.lower():
+                match = re.search(r'java (\d+)', version.lower())
+                if match:
+                    java_major = int(match.group(1))
+                    if java_major < required_java:
+                        # Show warning only for THIS card
+                        display_text = f"{version} (Older than recommended Java {required_java}+)"
+                        color = (0.9, 0.3, 0.3, 1)  # red
+                    else:
+                        # Normal checkmark for compatible versions
+                        display_text = f"{version} ✓"
+                        color = (0.1, 0.6, 0.2, 1)  # green
+                else:
+                    display_text = version
+
+            # Update the label only for this card
+            Clock.schedule_once(lambda dt: (
+                setattr(version_label, "text", display_text),
+                setattr(version_label, "text_color", color)
+            ))
+
+        Thread(target=background, daemon=True).start()
+
+    # -------------------------------
+    # Extract Java major version
+    # -------------------------------
+    def extract_java_version(self, text):
+        match = re.search(r'version\s+"?([0-9]+(\.[0-9]+)*)"?', text)
+        if match:
+            ver = match.group(1)
+        else:
+            match = re.search(r'openjdk\s+([0-9]+)', text)
+            ver = match.group(1) if match else "Unknown"
+
+        major = ver.split(".")[1] if ver.startswith("1.") else ver.split(".")[0]
+        return f"Java {major}" if major.isdigit() else "Unknown"
+
+    # -------------------------------
+    # Select and Save
+    # -------------------------------
+    def select_java(self, path):
+        version = self.java_info_cache.get(path, "Unknown")
+        self.selected_java_path = path
+        self.ids.java_path_input.text = path
+        self.ids.java_display_logo.text = f"Java Selected:\n{path}\n{version}"
+
+    def save_java_file(self):
+        if not self.selected_java_path:
+            self.ids.java_display_logo.text = "No Java Path Selected"
+            return
+        if not self.validate_java_path(self.selected_java_path):
+            self.ids.java_display_logo.text = "Invalid Java Path"
+            return
+
+
+        # Update app.server_data with selected Java path
+        app = MDApp.get_running_app()
+        app.server_data = getattr(app, "server_data", {})
+        app.server_data["java_path"] = self.selected_java_path
+
+        # Update display
+        self.ids.java_display_logo.text = f"Java path saved: {self.selected_java_path}"
+        self.manager.current = "finalize"
+
+    # -------------------------------
+    # Validation and discovery
+    # -------------------------------
+    def validate_java_path(self, path):
+        if not path or not os.path.exists(path):
+            return False
+        try:
+            result = subprocess.run([path, "-version"], capture_output=True, text=True, timeout=2)
+            return result.returncode == 0 and "version" in (result.stderr + result.stdout).lower()
+        except Exception:
+            return False
+
+    def get_java_versions(self):
+        java_paths = []
+
+        java_in_path = shutil.which("java")
+        if java_in_path:
+            java_paths.append(java_in_path)
+
+        java_home = os.environ.get("JAVA_HOME")
+        if java_home:
+            candidate = os.path.join(java_home, "bin", "java.exe" if os.name == "nt" else "java")
+            if os.path.isfile(candidate):
+                java_paths.append(candidate)
+
+        if os.name == "nt":
+            java_paths += glob.glob(r"C:\Program Files\Java\*\bin\java.exe")
+            java_paths += glob.glob(r"C:\Program Files (x86)\Java\*\bin\java.exe")
+
+        return list(dict.fromkeys(java_paths))
+
+    def back(self):
+        self.manager.current = "customization"
+
+    def select_java_file(self):
+        start_path = "/" if os.name != "nt" else r"C:\Program Files\Java"
+        self.file_manager.show(start_path)
+
+    def select_java_file_path(self, path):
+        if path.lower().endswith(("java", "java.exe")):
+            self.select_java(path)
+        else:
+            self.ids.java_display_logo.text = "Please select a valid Java executable"
+        self.close_file_manager()
+
+    def close_file_manager(self, *args):
+        try:
+            self.file_manager.close()
+        except Exception:
+            pass
 class Finalize_Server(MDScreen):
     """
     Screen to finalize the Minecraft server before installation:
@@ -1044,9 +1304,15 @@ class Finish_Server(MDScreen):
         self.ids.server_spinner.active = state
 
     def update_log(self, msg: str):
-        """Append a message to the server log panel safely from any thread."""
+        """Append a message to the server log panel safely from any thread with white text."""
+
         def _update(dt):
-            self.ids.update_log.add_widget(OneLineListItem(text=msg))
+            self.ids.update_log.add_widget(
+                OneLineListItem(
+                    text=msg,
+                    text_color=(1, 1, 1, 1)  # white color
+                )
+            )
             self.ids.update_log.scroll_y = 0  # scroll to bottom
 
         Clock.schedule_once(_update)
@@ -1071,6 +1337,7 @@ class Finish_Server(MDScreen):
         server_ram = data.get("ram", 2048)
         world_seed = data.get("world_seed")
         custom_world = data.get("world_folder")
+        java_path = getattr(app, "selected_java_path", "java")  # session-selected Java
 
         if not all([server_name, version, server_type]):
             self.update_log("Error: Missing server information.")
@@ -1078,7 +1345,7 @@ class Finish_Server(MDScreen):
             return
 
         try:
-            # Load config
+            # Load base folder
             config_path = Path("config.json")
             config = json.loads(config_path.read_text()) if config_path.exists() else {}
             base_location = Path(config.get("server_location", Path.cwd()))
@@ -1093,7 +1360,7 @@ class Finish_Server(MDScreen):
             self._download_server(server_type.lower(), version, jar_path)
 
             # Setup server
-            self.setup_server(server_folder, jar_path, server_type.lower(), server_ram, world_seed, custom_world)
+            self.setup_server(java_path)
 
         except Exception as e:
             self.update_log(f"Error: {e}")
@@ -1155,33 +1422,99 @@ class Finish_Server(MDScreen):
                     f.write(chunk)
         self.update_log(f"Saved: {dest_path}")
 
-    def setup_server(self, server_folder, jar_path, server_type, server_ram, world_seed, custom_world):
-        """Setup server files, apply seed/world, run first start, accept EULA."""
+    def setup_server(self, java_path: str):
+        """
+        Handles post-download tasks:
+        - Forge installation if needed
+        - Accept EULA
+        - Run first server start to generate files
+        - Apply custom seed
+        - Save server metadata
+        Fully cross-platform: handles Windows and Linux/Raspberry Pi paths.
+        """
+        app = MDApp.get_running_app()
+        data = app.server_data
+
+        server_name = data.get("server_name")
+        server_type = data.get("server_type", "").lower()
+        version = data.get("version")
+        server_ram = data.get("ram", 2048)
+        world_seed = data.get("world_seed")
+        custom_world = data.get("world_folder")
+
+        def update_label(msg):
+            """Update the server log safely with white text."""
+
+            def _update(dt):
+                self.ids.update_log.add_widget(
+                    OneLineListItem(text=msg, text_color=(1, 1, 1, 1))
+                )
+                self.ids.update_log.scroll_y = 0
+
+            Clock.schedule_once(_update)
+            print(msg)
+
         try:
-            # Custom world
+            # Load base folder
+            config_path = Path("config.json")
+            config = json.loads(config_path.read_text()) if config_path.exists() else {}
+            base_location = Path(config.get("server_location", Path.cwd()))
+            server_folder = base_location / server_name
+            server_folder.mkdir(parents=True, exist_ok=True)
+
+            # Handle custom world before first run
             if custom_world and Path(custom_world).exists():
                 target_world = server_folder / "world"
+                update_label("Copying custom world...")
                 if target_world.exists():
                     shutil.rmtree(target_world)
                 shutil.copytree(custom_world, target_world)
-                self.update_log("Custom world applied.")
+                update_label("Custom world copied successfully.")
 
-            # Apply seed
-            if world_seed:
-                props_file = server_folder / "server.properties"
-                props_file.touch(exist_ok=True)
-                with open(props_file, "a") as f:
-                    f.write(f"\nlevel-seed={world_seed}\n")
-                self.update_log(f"Applied seed: {world_seed}")
+            # Helper: apply custom world seed
+            def apply_seed():
+                if world_seed:
+                    props_file = server_folder / "server.properties"
+                    props_file.touch(exist_ok=True)
+                    with open(props_file, "a") as f:
+                        f.write(f"\nlevel-seed={world_seed}\n")
+                    update_label(f"Applied custom seed: {world_seed}")
+
+            # ---------- Forge setup ----------
+            if server_type == "forge":
+                installer_path = next((p for p in server_folder.iterdir() if "installer.jar" in p.name), None)
+                if not installer_path:
+                    update_label("Forge installer not found!")
+                    return
+
+                # Run installer
+                subprocess.run(
+                    [java_path, "-jar", str(installer_path), "--installServer"],
+                    cwd=server_folder,
+                    check=True
+                )
+                update_label("Forge installer finished.")
+
+                # Find the generated Forge jar
+                forge_jar = next((p for p in server_folder.iterdir() if p.name.endswith("-shim.jar")), None)
+                if not forge_jar:
+                    update_label("Forge jar not found after installation!")
+                    return
+
+                jar_path = server_folder / "server.jar"
+                shutil.copy2(forge_jar, jar_path)
+                update_label("Forge jar copied to server.jar")
+
+            # ---------- Vanilla/Paper/Fabric setup ----------
+            else:
+                jar_path = server_folder / "server.jar"
 
             # Accept EULA
             eula_file = server_folder / "eula.txt"
             eula_file.write_text("eula=true\n")
-            self.update_log("EULA accepted.")
+            update_label("EULA accepted.")
 
-            # Start server for first run
-            java_path = "java"
-            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            # Run server for first start
             proc = subprocess.Popen(
                 [java_path, f"-Xmx{server_ram}M", "-Xms1024M", "-jar", str(jar_path), "nogui"],
                 cwd=server_folder,
@@ -1190,45 +1523,49 @@ class Finish_Server(MDScreen):
                 stdin=subprocess.PIPE,
                 universal_newlines=True,
                 encoding="utf-8",
-                errors="ignore",
-                creationflags=creationflags
+                errors="ignore"
             )
 
+            done_seen = False
             for line in proc.stdout:
                 line = line.strip()
                 if line:
-                    self.update_log(line)
+                    update_label(line)
                 if "Done" in line or (server_type == "paper" and "Timings Reset" in line):
-                    self.update_log("Initial server start complete.")
+                    done_seen = True
+                    update_label("Initial server start complete.")
                     break
 
-            try:
-                proc.stdin.write("stop\n")
-                proc.stdin.flush()
-                proc.wait(timeout=10)
-                self.update_log("Server stopped after first run.")
-            except Exception:
-                proc.kill()
-                self.update_log("Server killed after timeout.")
+            if done_seen:
+                time.sleep(3)
+                try:
+                    proc.stdin.write("stop\n")
+                    proc.stdin.flush()
+                    proc.wait(timeout=10)
+                except Exception:
+                    proc.kill()
 
-            # Save metadata
+            apply_seed()
+
+            # Save server metadata including Java path
             server_info = {
-                "server_name": server_folder.name,
+                "server_name": server_name,
                 "server_ram": server_ram,
                 "server_type": server_type,
-                "server_version": server_folder.name,
-                "server_status": "Offline"
+                "server_version": version,
+                "server_status": "Offline",
+                "java_path": java_path
             }
             with open(server_folder / "server_info.json", "w") as f:
                 json.dump(server_info, f, indent=4)
 
-            self.update_log("Server setup complete.")
+            update_label("✅ Server Setup Complete!")
             self.toggle_spinner(False)
             self.ids.next_btn.disabled = False
             self.ids.start.disabled = False
 
         except Exception as e:
-            self.update_log(f"Setup error: {e}")
+            update_label(f"Error during setup: {e}")
             self.toggle_spinner(False)
 
     def back(self):
@@ -1236,6 +1573,7 @@ class Finish_Server(MDScreen):
 
     def next(self):
         self.manager.current = "homescreen"
+
 
 
 
@@ -1737,6 +2075,7 @@ class Server_Status(MDScreen):
             with open(info_path, "r", encoding="utf-8") as f:
                 info_data = json.load(f)
                 allocated_server_ram = info_data.get("server_ram", 2048)
+                java_path = info_data.get("java_path")
 
         ram_max = f"{allocated_server_ram // 1024}G"
 
@@ -1749,7 +2088,6 @@ class Server_Status(MDScreen):
 
         threading.Thread(target=self.start_playit, daemon=True).start()
 
-        java_path = config.get("java_path", "java")
         if pf.system() == "Linux":
             java_path = java_path or "java"
         else:
@@ -1914,6 +2252,7 @@ class Server_Status(MDScreen):
 
         # Start background daemon thread
         threading.Thread(target=_run_playit, daemon=True).start()
+        self.replace_log("Trying To get IP")
 
         # Return IP immediately if fetched, else placeholder
         return self.playit_ip or "Fetching IP..."
@@ -4335,7 +4674,7 @@ class MainApp(MDApp):
             "setup.kv", "status.kv", "players.kv", "server_file.kv", "console.kv",
             "properties.kv", "versions.kv", "home_screen.kv", "server_type.kv",
             "configuration.kv", "customization.kv", "whitelist.kv",
-            "banned_players.kv", "ops.kv"
+            "banned_players.kv", "ops.kv", "JavaDetection.kv"
         ]
 
         # ------------------------------
@@ -4359,7 +4698,7 @@ class MainApp(MDApp):
         sm.add_widget(Server_Properties(name="server_properties"))
         sm.add_widget(Home_Screen(name="homescreen"))
         sm.add_widget(Setup(name="setup"))
-        sm.add_widget(Java_detection(name="java_detection"))
+        sm.add_widget(Java_Detection(name="JavaDetection"))
         sm.add_widget(Server_Folder(name="select_server_folder"))
         sm.add_widget(Server_Type(name="select_server_type"))
         sm.add_widget(Server_Version(name="select_server_version"))
@@ -4373,7 +4712,7 @@ class MainApp(MDApp):
         sm.add_widget(Server_Ops(name="ops"))
 
         # ------------------------------
-        # Config handling (This will now work correctly)
+        # Config handling
         # ------------------------------
         config_path = os.path.join(base_path, "config.json")
         if os.path.exists(config_path):

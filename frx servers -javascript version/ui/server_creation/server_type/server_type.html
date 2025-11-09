@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Select Server Type</title>
+  <link rel="stylesheet" href="server_type.css" />
+  <script src="server_type.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Select Your Server Type</h1>
+    <p class="subtitle-main">
+      Choose the Minecraft server type that matches your gameplay goals and performance needs.
+    </p>
+
+    <div class="server-carousel">
+      <div class="server-type selected" data-type="Vanilla">
+        <h2>Vanilla</h2>
+        <p class="subtitle">The True Minecraft Experience</p>
+        <p class="desc">
+          • Official, unmodified Minecraft server from Mojang<br>
+          • Perfect for pure survival or creative gameplay<br>
+          • Requires no setup or mods — plug and play
+        </p>
+      </div>
+
+      <div class="server-type" data-type="Paper">
+        <h2>Paper</h2>
+        <p class="subtitle">Optimized & Plugin-Friendly</p>
+        <p class="desc">
+          • Enhanced fork of Spigot for high performance<br>
+          • Supports thousands of Bukkit plugins<br>
+          • Great for large, lag-free multiplayer worlds
+        </p>
+      </div>
+
+      <div class="server-type" data-type="Fabric">
+        <h2>Fabric</h2>
+        <p class="subtitle">Lightweight Modding Platform</p>
+        <p class="desc">
+          • Small, fast, and easy to update mod loader<br>
+          • Ideal for custom modded experiences<br>
+          • Low memory usage and frequent updates
+        </p>
+      </div>
+
+      <div class="server-type" data-type="Forge">
+        <h2>Forge</h2>
+        <p class="subtitle">Full Modded Powerhouse</p>
+        <p class="desc">
+          • Supports the largest variety of Minecraft mods<br>
+          • Great for advanced or large modpacks<br>
+          • Allows deep gameplay customization
+        </p>
+      </div>
+    </div>
+
+    <p id="selected-label">Selected: Vanilla</p>
+
+    <div class="buttons">
+      <button id="back-btn">← Back</button>
+      <button id="next-btn">Next →</button>
+    </div>
+  </div>
+
+  <script>
+    const cards = document.querySelectorAll(".server-type");
+    const label = document.getElementById("selected-label");
+
+    // Just selection logic — no transforms or animations
+    cards.forEach((card) => {
+      card.addEventListener("click", () => {
+        cards.forEach((c) => c.classList.remove("selected"));
+        card.classList.add("selected");
+        label.textContent = "Selected: " + card.dataset.type;
+      });
+    });
+  </script>
+</body>
+</html>

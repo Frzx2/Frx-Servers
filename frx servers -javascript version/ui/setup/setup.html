@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frx Servers Setup</title>
+    <link rel="stylesheet" href="./setup.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <div class="setup-container">
+      <!-- Welcome Screen -->
+      <div id="welcome-screen" class="setup-card active">
+        <img src="../../Icon/logo.ico" alt="Frx Logo" class="setup-logo" />
+        <h1>Welcome to <span>Frx Servers</span></h1>
+        <p>Let’s help you configure your Minecraft server location quickly and easily.</p>
+        <button id="start-btn" class="primary-btn">Start Setup</button>
+      </div>
+
+      <!-- Folder Selection Screen -->
+      <div id="folder-screen" class="setup-card">
+        <h2>Choose Your Server Folder</h2>
+        <p>Select the folder where your server files will be stored.</p>
+
+        <div class="input-group">
+          <input
+            type="text"
+            id="folder-path"
+            readonly
+            placeholder="No folder selected"
+          />
+        </div>
+
+        <div class="btn-group">
+          <button id="browse-btn" class="secondary-btn">Browse</button>
+          <button id="confirm-btn" class="primary-btn" disabled>Confirm</button>
+        </div>
+
+        <p id="status-msg"></p>
+      </div>
+    </div>
+
+    <script src="./setup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Manager – Home</title>
+  <link rel="stylesheet" href="home_screen.css" />
+  <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+  <!-- === TOP BAR === -->
+  <div class="top-bar">
+    <div class="left-buttons">
+      <button id="config-btn"><i data-feather="settings"></i> Settings</button>
+    </div>
+
+    <h1>My Servers</h1>
+
+    <div class="top-buttons">
+      <input type="text" id="search-box" placeholder="Search server..." />
+      <button id="refresh-btn"><i data-feather="refresh-cw"></i> Refresh</button>
+      <button id="create-btn"><i data-feather="plus"></i> Create</button>
+    </div>
+  </div>
+
+  <!-- === SERVER LIST === -->
+  <div id="server-list" class="server-list">
+    <p class="no-servers">No servers available. Create a server to begin.</p>
+  </div>
+  
+  <script src="home_screen.js"></script>
+  <script>
+    feather.replace();
+  </script>
+</body>
+</html>

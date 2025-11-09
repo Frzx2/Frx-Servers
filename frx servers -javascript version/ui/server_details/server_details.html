@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Details</title>
+  <link rel="stylesheet" href="server_details.css" />
+  <script src="https://unpkg.com/feather-icons"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="./system_monitor.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    
+    <!-- === 🟩 TOP SECTION === -->
+    <div class="top-row">
+      <!-- LEFT SIDE: SERVER INFO + STATUS CARD -->
+      <div class="top-left glass-card">
+        <div class="server-info">
+          <img id="server-icon" src="" alt="Server Icon" />
+          <div class="info-text">
+            <h2 id="server-name">Server Name</h2>
+            <p id="server-version">Version: --</p>
+            <p id="server-type">Type: --</p>
+          </div>
+        </div>
+        <div class="status-mini-card">
+          <p id="server-status">Status: Offline</p>
+          <p id="server-ip">IP: --.--.--.--</p>
+          <button id="copy-ip-btn" class="btn copy" title="Copy IP to Clipboard">
+            <i data-feather="copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE: SERVER CONTROLS -->
+      <div class="top-right glass-card">
+        <h3>Server Controls</h3>
+        <div class="control-buttons">
+          <button id="start-btn" class="btn start">Start</button>
+          <button id="stop-btn" class="btn stop hidden">Stop</button>
+          <button id="restart-btn" class="btn restart hidden">Restart</button>
+          <button id="kill-btn" class="btn kill hidden">Kill</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- === 🟦 SECOND ROW === -->
+    <div class="main-row">
+      <!-- === LEFT: MENU AREA === -->
+      <div class="menu-section glass-card">
+        <div class="menu-bar">
+          <button class="menu-btn active" data-section="status">Status</button>
+          <button class="menu-btn" data-section="console">Console</button>
+          <button class="menu-btn" data-section="players">Players</button>
+          <button class="menu-btn" data-section="properties">Properties</button>
+          <div class="tooltip-wrapper" title="When server is online you can't go into Home Menu">
+            <button id="home_menu" data-section="home_menu">Home</button>
+          </div>
+          <button id="open-folder-btn" class="btn folder" title="Open Folder">📂 Open Folder</button>
+        </div>
+      
+        <!-- === SECTION CONTENTS === -->
+        <div class="menu-content">
+          
+          <!--  EFFECTS -->
+          <div id="status" class="section active">
+            <div class="stats-card">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i data-feather="cpu"></i>
+                </div>
+                <div class="stat-info">
+                  <h4>CPU Usage</h4>
+                  <p id="cpu-usage">--%</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i data-feather="server"></i>
+                </div>
+                <div class="stat-info">
+                  <h4>RAM Usage</h4>
+                  <p id="ram-usage">--%</p>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <i data-feather="clock"></i>
+                </div>
+                <div class="stat-info">
+                  <h4>Uptime</h4>
+                  <p id="uptime">--</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- USAGE GRAPH (keep inside the same "status" section) -->
+            <div class="card graph-card">
+              <div class="graph-controls">
+                <button class="graph-btn active" data-range="5">5m</button>
+                <button class="graph-btn" data-range="10">10m</button>
+                <button class="graph-btn" data-range="15">15m</button>
+                <button class="graph-btn" data-range="30">30m</button>
+              </div>
+              <canvas id="usage-graph"></canvas>
+            </div>
+          </div>
+
+          <!-- 💬 CONSOLE -->
+          <div id="console" class="section">
+            <div class="card console-card">
+              <h3>Command Console</h3>
+              <div class="console-box" id="console-output"></div>
+              <label for="console-input">Enter Command:</label>
+              <div class="console-input-group">
+                <input id="console-input" type="text" placeholder="Type a command..." />
+                <button id="send-command-btn" class="btn send-command">Send</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 👥 PLAYERS -->
+          <div id="players" class="section">
+            <div class="card player-card">
+              <h3>Player Management</h3>
+              <div class="player-controls">
+                <input type="text" id="player-search" placeholder="Search player..." />
+                <button class="toggle-btn active" data-target="ops">Ops</button>
+                <button class="toggle-btn" data-target="whitelist">Whitelist</button>
+                <button class="toggle-btn" data-target="banned">Banned</button>
+              </div>
+              <div id="player-menu-side" class="player-menu-side"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- === RIGHT: PLAYERS CARD + MINI CONSOLE === -->
+      <div class="right-panel">
+        <div class="players-card glass-card tall-card">
+          <h3 id="player-count">Players: 0/0</h3>
+          <div id="player-list" class="player-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="server_details.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Select Server RAM</title>
+  <link rel="stylesheet" href="server_ram.css" />
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Select RAM Allocation</h1>
+    <p class="subtitle-main">Adjust how much memory your Minecraft server will use.</p>
+
+    <div class="ram-control">
+      <label for="ram-slider" class="ram-label">Allocated RAM (MB): 
+        <span id="ram-value">2048</span>
+      </label>
+      <input type="range" id="ram-slider" min="1024" max="16384" step="256" value="2048" />
+    </div>
+
+    <div class="quick-buttons">
+      <button class="ram-btn" data-value="2048">2 GB</button>
+      <button class="ram-btn" data-value="4096">4 GB</button>
+      <button class="ram-btn" data-value="8192">8 GB</button>
+    </div>
+
+    <div class="input-section">
+      <input type="text" id="server-name" placeholder="Enter your server name..." />
+      <p id="error-label" class="error-label"></p>
+    </div>
+
+    <div class="buttons">
+      <button id="back-btn">⬅ Back</button>
+      <button id="next-btn">Next ➡</button>
+    </div>
+  </div>
+
+  <script src="server_ram.js"></script>
+</body>
+</html>

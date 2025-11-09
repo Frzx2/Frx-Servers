@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration</title>
+  <link rel="stylesheet" href="./config.css">
+</head>
+<body>
+  <div class="config-wrapper">
+    <div class="config-container">
+      <h1>Server Configuration</h1>
+
+      <!-- === Server Location Section === -->
+      <div class="config-section">
+        <label for="serverLocation">Server Location</label>
+        <div class="path-box">
+          <input type="text" id="serverLocation" readonly placeholder="No folder selected">
+          <button id="browseBtn">Change</button>
+        </div>
+        <p id="statusMsg"></p>
+      </div>
+
+      <!-- === Java Path Section === -->
+      <div class="config-section">
+        <label for="javaPath">Java Path</label>
+        <div class="path-box">
+          <input type="text" id="javaPath" readonly placeholder="No Java path selected">
+          <button id="javaBrowseBtn">Browse</button>
+        </div>
+
+        <!-- List of detected Java installations -->
+        <ul id="javaList" class="java-list"></ul>
+      </div>
+
+
+      <button id="backBtn" class="back-button">← Back</button>
+    </div>
+
+    <footer>
+      <a href="#" id="licenseLink">Playit.gg License</a>
+    </footer>
+  </div>
+
+  <!-- === License Modal === -->
+  <div id="licenseModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>License & Attribution</h2>
+      <p>
+        This application bundles the <strong>Playit.gg agent</strong> to provide secure tunneling for Minecraft servers.
+        The agent is developed and maintained by Developed Methods LLC.
+      </p>
+      <p>
+        For more information about Playit.gg, visit:<br>
+        👉 <a href="https://playit.gg" target="_blank">https://playit.gg</a>
+      </p>
+
+      <h3>License</h3>
+      <pre>
+Copyright 2022 Developed Methods LLC
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DAMAGES.
+      </pre>
+
+      <p class="note">
+        Note: This project is not affiliated with Playit.gg or Developed Methods LLC.  
+        The Playit.gg agent is provided as-is under its license.  
+        <strong>Frx Servers</strong> are NOT affiliated with <strong>Playit.gg</strong>.
+      </p>
+    </div>
+  </div>
+
+  <script src="./config.js"></script>
+</body>
+</html>

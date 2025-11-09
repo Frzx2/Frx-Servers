@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server World Customization</title>
+  <link rel="stylesheet" href="server_world.css" />
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">World Customization </h1>
+    <p class="subtitle">Choose either a Seed or a Custom World Folder — not both!</p>
+
+    <div class="world-options">
+      <!-- Seed Input -->
+      <div class="option-box">
+        <label for="seed-input" class="option-title"> Enter Custom Seed</label>
+        <input id="seed-input" type="text" placeholder="Enter numeric or text seed..." />
+        <p class="note">Leave blank to generate a random seed</p>
+      </div>
+
+      <div class="divider">OR</div>
+
+      <!-- Folder Picker -->
+      <div class="option-box">
+        <label class="option-title"> Select World Folder</label>
+        <button id="select-folder-btn">Choose Folder</button>
+        <p id="selected-folder-label" class="note">No folder selected</p>
+      </div>
+    </div>
+
+    <p id="error-label" class="error-label"></p>
+
+    <div class="buttons">
+      <button id="back-btn">⬅ Back</button>
+      <button id="next-btn">Next ➜</button>
+    </div>
+  </div>
+
+  <script src="server_world.js"></script>
+</body>
+</html>

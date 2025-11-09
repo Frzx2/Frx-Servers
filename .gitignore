@@ -1,18 +1,15 @@
+
+frx servers -javascript version/Testing/
+Testing/
+*.log
+frx servers -javascript version/node_modules/
+javascript_version/Frx\ Servers/
+.idea/
+.vscode/
 __pycache__/
 *.pyc
-
-# PyCharm project files
-.idea/
-
-# Virtual environment
+*.pyo
 .venv/
-
-# Libraries folder (if you have one)
-.libraries/
-
-# Test scripts/folders you don't want
-test.py
-Testing/
-.gitignore
-dist/
-version_manifest_cache.json
+env/
+*.DS_Store
+Thumbs.db

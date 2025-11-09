@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Frx Server Manager</title>
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    const fs = require('fs');
+    const path = require('path');
+
+    const basePath = __dirname;
+    const configPath = path.join(basePath, 'config.json');
+    const appDiv = document.getElementById('app');
+
+    let screenToLoad = 'setup';
+
+    try {
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.setup === true) {
+          screenToLoad = 'home_screen';
+        }
+      } else {
+        // Create default config if it doesn’t exist
+        fs.writeFileSync(configPath, JSON.stringify({ setup: false }, null, 2));
+      }
+    } catch (err) {
+      console.error('Error reading config.json:', err);
+    }
+
+    // Load appropriate HTML dynamically
+    const screenPath = path.join(basePath, 'ui', screenToLoad, `${screenToLoad}.html`);
+    fetch(`./ui/${screenToLoad}/${screenToLoad}.html`)
+      .then(res => res.text())
+      .then(html => {
+        appDiv.innerHTML = html;
+
+        // Dynamically load CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `./ui/${screenToLoad}/${screenToLoad}.css`;
+        document.head.appendChild(link);
+
+        // Dynamically load JS
+        const script = document.createElement('script');
+        script.src = `./ui/${screenToLoad}/${screenToLoad}.js`;
+        document.body.appendChild(script);
+      })
+      .catch(err => {
+        appDiv.innerHTML = `<h2 style="color:red">Failed to load ${screenToLoad} screen</h2>`;
+        console.error(err);
+      });
+  </script>
+</body>
+</html>

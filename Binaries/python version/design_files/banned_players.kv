@@ -1,0 +1,86 @@
+<Banned_Players>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "10dp"
+        padding: "10dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1  # dark background
+
+        # --- HEADER ---
+        MDLabel:
+            text: "Banned Players"
+            halign: "center"
+            font_style: "H4"
+            size_hint_y: None
+            height: "48dp"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1  # white text
+
+        # --- MAIN CONTENT ---
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "10dp"
+
+            # ---- LEFT PANEL (Ban Username) 35% ----
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.35
+                md_bg_color: 0.15, 0.15, 0.18, 1
+                radius: [12]
+                padding: "10dp"
+                spacing: "10dp"
+
+                MDTextField:
+                    id: search_all
+                    hint_text: "Enter username to ban..."
+                    mode: "rectangle"
+                    line_color_focus: 0.4, 0.7, 1, 1
+                    text_color: 1, 1, 1, 1
+                    hint_text_color: 0.7, 0.7, 0.7, 1
+
+                MDRaisedButton:
+                    id: ban_button
+                    text: "Ban"
+                    size_hint_y: None
+                    height: "40dp"
+                    md_bg_color: 0.8, 0.1, 0.1, 1
+                    text_color: 1, 1, 1, 1
+                    on_release:
+                        root.ban_user_global(search_all.text)
+                        search_all.text = ""  # clear after ban
+
+                ScrollView:
+                    MDList:
+                        id: all_players_list
+                        # Optional: populate dynamically if you want to show suggestions
+
+            # ---- RIGHT PANEL (Banned Players) 65% ----
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint_x: 0.65
+                md_bg_color: 0.15, 0.15, 0.18, 1
+                radius: [12]
+                padding: "10dp"
+                spacing: "10dp"
+
+                MDTextField:
+                    id: search_banned
+                    hint_text: "Search banned players..."
+                    mode: "rectangle"
+                    line_color_focus: 0.4, 0.7, 1, 1
+                    text_color: 1, 1, 1, 1
+                    hint_text_color: 0.7, 0.7, 0.7, 1
+
+                ScrollView:
+                    MDList:
+                        id: banned_players_list
+                        # populate dynamically with profile pics + Unban button
+
+        # --- BOTTOM BACK BUTTON ---
+        MDRaisedButton:
+            text: "Back"
+            size_hint: None, None
+            size: "120dp", "48dp"
+            pos_hint: {"center_x": 0.5}
+            md_bg_color: 0.2, 0.6, 0.9, 1
+            text_color: 1, 1, 1, 1
+            on_release: root.set_screen("status") if hasattr(root, "set_screen") else print("back")

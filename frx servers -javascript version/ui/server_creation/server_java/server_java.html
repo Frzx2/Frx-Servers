@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Select Java</title>
+  <link rel="stylesheet" href="server_java.css" />
+</head>
+<body>
+  <div class="java-container">
+    <h1>Java Setup</h1>
+    <p id="java-info">Detecting installed Java versions...</p>
+
+    <!-- Input and Browse -->
+    <div class="java-input-row">
+      <input type="text" id="java-path-input" placeholder="Enter or browse for java.exe path..." />
+      <button id="browse-btn" class="btn primary"> Browse</button>
+    </div>
+
+    <button id="refresh-btn" class="btn secondary refresh-btn"> Refresh Java List</button>
+
+    <div id="java-list" class="java-list"></div>
+
+    <p class="error-label" id="error_label"></p>
+
+    <div class="bottom-controls">
+      <button id="back-btn" class="btn secondary">⬅ Back</button>
+      <button id="next-btn" class="btn primary">Next ➡</button>
+    </div>
+  </div>
+  <div id="save-java-popup" class="popup hidden">
+  <div class="popup-content">
+    <span id="popup-close">&times;</span>
+    <p>Do you want to save this as your default Java path?</p>
+    <button id="popup-save-btn" class="btn primary">Save</button>
+  </div>
+</div>
+<div id="progress-popup">
+    <h4>Downloading Java...</h4>
+    <div class="progress-bar">
+      <div class="progress-fill"></div>
+    </div>
+    <div id="progress-text">0%</div>
+  </div>
+  <script src="server_java.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+body {
+  margin: 0;
+  background-color: #0e0e0e;
+  color: white;
+  font-family: "Segoe UI", sans-serif;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

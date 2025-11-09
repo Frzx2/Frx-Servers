@@ -1,0 +1,131 @@
+<Setup>:
+    name: "setup"
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "20dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1
+
+        MDLabel:
+            text: "Frx Minecraft Server Manager - Setup"
+            halign: "center"
+            font_style: "H5"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+
+        MDSeparator:
+            color: 0.3, 0.3, 0.35, 1
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: "15dp"
+
+            MDLabel:
+                text: "Welcome! Let's get your Minecraft server setup."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+            MDLabel:
+                text: "Make Sure You have Playit.gg Configured so that The server works."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+
+        Widget:
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "15dp"
+            adaptive_size: True
+            pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDRaisedButton:
+                text: "Start Setup"
+                md_bg_color: 0.2, 0.6, 1, 1
+                text_color: 1, 1, 1, 1
+                elevation: 8
+                on_release: root.start_setup()
+
+            MDRaisedButton:
+                text: "Leave"
+                md_bg_color: 1, 0, 0, 1
+                text_color: 1, 1, 1, 1
+                elevation: 8
+                on_release: app.stop()
+
+# -------------------------------
+# Server Folder Selection Screen
+# -------------------------------
+<Server_Folder>:
+    name: "select_server_folder"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "20dp"
+        spacing: "15dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1
+
+        MDLabel:
+            text: "Select a Folder for Your Minecraft Servers"
+            halign: "center"
+            font_style: "H5"
+            text_color: 1, 1, 1, 1
+
+        MDLabel:
+            text: "Choose the location where your Minecraft servers will be stored."
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+
+        MDTextField:
+            id: folder_path
+            hint_text: "Server folder path"
+            mode: "rectangle"
+            size_hint_x: 1
+
+            # Text colors
+            text_color_normal: 1, 1, 1, 1
+            text_color_focus: 1, 1, 1, 1
+
+            # Hint colors
+            hint_text_color_normal: 1, 1, 1, 0.7
+            hint_text_color_focus: 1, 1, 1, 0.7
+
+            # Underline (line) colors
+            line_color_normal: 1, 1, 1, 0.5
+            line_color_focus: 1, 1, 1, 1
+
+
+        MDLabel:
+            id: status_label
+            text: "No folder selected"
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "15dp"
+            size_hint_y: None
+            height: "50dp"
+
+            MDRaisedButton:
+                text: "Back"
+                md_bg_color: 0.25, 0.25, 0.25, 1
+                text_color: 1, 1, 1, 1
+                size_hint_x: 0.3
+                on_release: app.root.current = "java_detection"
+
+            MDRaisedButton:
+                text: "Browse"
+                md_bg_color: 0.1, 0.6, 0.2, 1
+                text_color: 1, 1, 1, 1
+                size_hint_x: 0.35
+                on_release: root.folder_picker()
+
+            MDRaisedButton:
+                text: "Continue"
+                md_bg_color: 0.2, 0.6, 1, 1
+                text_color: 1, 1, 1, 1
+                size_hint_x: 0.35
+                on_release: root.validate_dir(folder_path.text)

@@ -1,0 +1,128 @@
+<Configuration>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "25dp"
+        padding: "30dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1  # Dark background
+
+        # ---- Status Section ----
+        MDLabel:
+            id: status_label
+            text: "All systems operational"
+            halign: "left"
+            font_style: "Subtitle2"
+            theme_text_color: "Custom"
+            text_color: 0.6, 0.9, 0.6, 1  # greenish for OK, red if error
+            size_hint_y: None
+            height: "25dp"
+
+        # ---- Paths & Setup Section ----
+        MDLabel:
+            text: "Paths & Setup"
+            halign: "left"
+            font_style: "H6"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint_y: None
+            height: "30dp"
+
+        MDBoxLayout:
+            orientation: "vertical"
+            spacing: "20dp"
+
+            # Java Path Card
+            MDCard:
+                orientation: "horizontal"
+                padding: "18dp"
+                spacing: "25dp"
+                radius: [20, 20, 20, 20]
+                md_bg_color: 0.15, 0.15, 0.18, 1
+                size_hint_y: None
+                height: "100dp"
+                elevation: 8
+
+                MDLabel:
+                    id: java_path
+                    text: "Java Path not set"
+                    halign: "left"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    size_hint_x: 0.8
+                    text_size: self.width, None
+                    shorten: False
+
+                MDRaisedButton:
+                    id: edit_java_path
+                    text: "Edit"
+                    font_size: "16sp"
+                    md_bg_color: 0.6, 0.3, 1, 1
+                    text_color: 1, 1, 1, 1
+                    on_release: root.edit_java_path()
+
+            # Server Location Card
+            MDCard:
+                orientation: "horizontal"
+                padding: "18dp"
+                spacing: "25dp"
+                radius: [20, 20, 20, 20]
+                md_bg_color: 0.15, 0.15, 0.18, 1
+                size_hint_y: None
+                height: "100dp"
+                elevation: 8
+
+                MDLabel:
+                    id: server_location
+                    text: "Server Location not set"
+                    halign: "left"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+
+                MDRaisedButton:
+                    id: edit_server_path
+                    text: "Edit"
+                    font_size: "16sp"
+                    md_bg_color: 0.6, 0.3, 1, 1
+                    text_color: 1, 1, 1, 1
+                    on_release: root.edit_server_path()
+
+        Widget:  # pushes footer down
+            size_hint_y: 1
+
+                # ---- Footer ----
+        MDBoxLayout:
+            size_hint_y: None
+            height: "60dp"
+            padding: "10dp"
+            spacing: "15dp"
+            adaptive_height: True
+
+            MDRaisedButton:
+                text: "Back"
+                font_size: "16sp"
+                md_bg_color: 0.15, 0.35, 0.55, 1   # muted blue-gray
+                text_color: 1, 1, 1, 1
+                elevation: 6
+                on_release: root.back()
+
+            MDRaisedButton:
+                text: "Download Java"
+                font_size: "17sp"
+                md_bg_color: 0.7, 0.4, 1, 1   # brighter violet
+                text_color: 1, 1, 1, 1
+                elevation: 10
+                shadow_softness: 8
+                shadow_offset: (0, 3)
+                on_release: root.install_java()
+
+            Widget:
+
+            MDLabel:
+                text: "[u][ref=license][color=#82B1FF]Playit.gg License[/color][/ref][/u]"
+                markup: True
+                halign: "right"
+                font_style: "Subtitle2"
+                theme_text_color: "Custom"
+                text_color: 0.8, 0.8, 0.8, 1
+                on_ref_press: root.open_license()

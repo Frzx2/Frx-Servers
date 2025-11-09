@@ -1,0 +1,157 @@
+<Server_Type>:
+    name: "select_server_type"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "30dp"
+        spacing: "30dp"
+        md_bg_color: 0.1, 0.1, 0.1, 1   # Dark background
+
+        MDLabel:
+            text: "Select Server Type"
+            halign: "center"
+            font_style: "H4"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1        # White text
+
+        MDGridLayout:
+            cols: 2
+            spacing: "25dp"
+            size_hint: None, None
+            size: self.minimum_size
+            row_default_height: "220dp"
+            row_force_default: True
+            pos_hint: {"center_x": 0.5}
+
+            # Fabric Card
+            MDCard:
+                id: fabric_btn
+                orientation: "vertical"
+                padding: "10dp"
+                size_hint: None, None
+                size: "220dp", "220dp"
+                md_bg_color: 0.15, 0.2, 0.3, 1   # dark bluish
+                line_color: 0.2, 0.6, 0.9, 1     # Fabric accent
+                ripple_behavior: True
+                on_release: root.select_type("Fabric")
+
+                MDLabel:
+                    text: "Fabric"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.2, 0.6, 0.9, 1
+                    font_style: "H5"
+
+                MDLabel:
+                    text: "- Lightweight\n- Quick startup\n- Many small mods"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.8, 0.9, 1, 1
+                    font_style: "Caption"
+
+            # Forge Card
+            MDCard:
+                id: forge_btn
+                orientation: "vertical"
+                padding: "10dp"
+                size_hint: None, None
+                size: "220dp", "220dp"
+                md_bg_color: 0.2, 0.15, 0.1, 1   # dark brownish
+                line_color: 0.9, 0.6, 0.2, 1     # Forge accent
+                ripple_behavior: True
+                on_release: root.select_type("Forge")
+
+                MDLabel:
+                    text: "Forge"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.9, 0.6, 0.2, 1
+                    font_style: "H5"
+
+                MDLabel:
+                    text: "- Supports huge modpacks\n- Stable for big mods"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.95, 0.9, 0.8, 1
+                    font_style: "Caption"
+
+            # Vanilla Card
+            MDCard:
+                id: vanilla_btn
+                orientation: "vertical"
+                padding: "10dp"
+                size_hint: None, None
+                size: "220dp", "220dp"
+                md_bg_color: 0.12, 0.18, 0.12, 1  # dark greenish
+                line_color: 0.6, 0.8, 0.4, 1      # Vanilla accent
+                ripple_behavior: True
+                on_release: root.select_type("Vanilla")
+
+                MDLabel:
+                    text: "Vanilla"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.6, 0.8, 0.4, 1
+                    font_style: "H5"
+
+                MDLabel:
+                    text: "- Most stable\n- Official\n- No mod issues"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.85, 0.95, 0.85, 1
+                    font_style: "Caption"
+
+            # Paper Card
+            MDCard:
+                id: paper_btn
+                orientation: "vertical"
+                padding: "10dp"
+                size_hint: None, None
+                size: "220dp", "220dp"
+                md_bg_color: 0.2, 0.1, 0.2, 1    # dark purple
+                line_color: 0.8, 0.4, 0.9, 1     # Paper accent
+                ripple_behavior: True
+                on_release: root.select_type("Paper")
+
+                MDLabel:
+                    text: "Paper"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.8, 0.4, 0.9, 1
+                    font_style: "H5"
+
+                MDLabel:
+                    text: "- Great performance\n- Low latency\n- Compatible with most plugins"
+                    halign: "center"
+                    theme_text_color: "Custom"
+                    text_color: 0.95, 0.85, 0.98, 1
+                    font_style: "Caption"
+
+        MDLabel:
+            id: selected_label
+            text: "No server type selected"
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 0.8, 0.8, 0.8, 1
+            font_style: "Subtitle1"
+
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "10dp"
+            padding: "10dp"
+            MDRaisedButton:
+                id: back_btn
+                text: "Back"
+                md_bg_color: 0.3, 0.3, 0.3, 1
+                text_color: 1, 1, 1, 1
+                pos_hint: {"center_x": 0.5}
+                disabled: False
+                on_release: root.back()
+            MDRaisedButton:
+                id: next_btn
+                text: "Next"
+                md_bg_color: 0.2, 0.6, 0.9, 1
+                text_color: 1, 1, 1, 1
+                pos_hint: {"center_x": 0.5}
+                disabled: True
+                on_release: root.go_to_next()

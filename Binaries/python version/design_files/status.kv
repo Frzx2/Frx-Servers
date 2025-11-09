@@ -1,0 +1,390 @@
+<Server_Status>:
+    md_bg_color: 0.08, 0.08, 0.1, 1   # dark charcoal background
+
+    MDScrollView:
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: "20dp"
+            spacing: "20dp"
+            adaptive_height: True
+
+            # === Server Info Card ===
+            MDCard:
+                id: server_info_card
+                orientation: "vertical"
+                size_hint_y: None
+                height: "240dp"
+                md_bg_color: 0.16, 0.16, 0.2, 1
+                radius: [20]
+                padding: "18dp"
+                spacing: "12dp"
+                elevation: 10
+
+                MDLabel:
+                    id: server_name_label
+                    text: "Server Name"
+                    halign: "left"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.9, 0.9, 1, 1
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: "20dp"
+
+                    MDLabel:
+                        id: ram_label
+                        text: "RAM: N/A"
+                        halign: "left"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: 0.7, 0.85, 1, 1
+
+                    MDLabel:
+                        id: version_label
+                        text: "Version: N/A"
+                        halign: "center"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: 0.7, 0.85, 1, 1
+
+                    MDLabel:
+                        id: type_label
+                        text: "Type: N/A"
+                        halign: "right"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: 0.7, 0.85, 1, 1
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: "15dp"
+
+                    MDLabel:
+                        id: server_status
+                        text: "SERVER: OFFLINE"
+                        theme_text_color: "Custom"
+                        text_color: 1, 0.2, 0.2, 1   # red offline
+                        font_style: "H6"
+                        halign: "left"
+
+                    MDLabel:
+                        id: server_uptime
+                        text: "Uptime: 00:00:00"
+                        theme_text_color: "Custom"
+                        text_color: 0.2, 0.9, 0.3, 1  # neon green
+                        font_style: "Subtitle1"
+                        halign: "right"
+
+                MDCard:
+                    id: ip_card
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: "45dp"
+                    padding: "8dp"
+                    radius: [12]
+                    md_bg_color: 0.12, 0.12, 0.15, 1
+                    spacing: "10dp"
+                    elevation: 5
+
+                    MDLabel:
+                        id: server_ip
+                        text: "No tunnel Found"
+                        halign: "center"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Custom"
+                        text_color: 0.6, 0.9, 1, 1
+
+                    MDRaisedButton:
+                        id: copy_ip_btn
+                        text: "Copy IP"
+                        size_hint_x: None
+                        width: "90dp"
+                        md_bg_color: 0.25, 0.5, 1, 1
+                        text_color: 1, 1, 1, 1
+                        elevation: 12
+                        on_release: root.copy_ip()
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: "5dp"
+
+                    MDLabel:
+                        id: server_log
+                        text: "Logs/Commands will appear here..."
+                        theme_text_color: "Custom"
+                        text_color: 0.6, 0.7, 0.8, 1
+                        halign: "left"
+                        valign: "top"
+                        font_style: "Caption"
+
+                    MDLabel:
+                        id: battery_label
+                        text: "Battery: 2h 15m left"
+                        theme_text_color: "Custom"
+                        text_color: 0.6, 0.7, 0.8, 1
+                        halign: "right"
+                        valign: "middle"
+                        font_style: "Caption"
+
+                MDProgressBar:
+                    id: progress_bar_status
+                    value: 0
+                    max: 100
+                    color: 0.25, 0.8, 1, 1   # neon cyan
+                    type: "determinate"
+                    height: "12dp"
+                    radius: [20]
+
+            # === Server Function Buttons ===
+            MDBoxLayout:
+                orientation: "horizontal"
+                size_hint_y: None
+                height: "85dp"
+                spacing: "18dp"
+                padding: "10dp"
+
+                MDRaisedButton:
+                    id: start_btn
+                    text: "Start Server"
+                    size_hint_x: 0.5
+                    md_bg_color: 0.15, 0.75, 0.25, 1
+                    text_color: 1, 1, 1, 1
+                    elevation: 12
+                    on_release:
+                        root.start_server()
+
+                MDRaisedButton:
+                    id: stop_btn
+                    text: "Stop"
+                    size_hint_x: 0.3
+                    md_bg_color: 0.9, 0.25, 0.25, 1
+                    text_color: 1, 1, 1, 1
+                    disabled: True
+                    on_release:
+                        root.stop_server()
+
+                MDRaisedButton:
+                    id: restart_btn
+                    text: "Restart"
+                    size_hint_x: 0.3
+                    md_bg_color: 0.25, 0.45, 1, 1
+                    text_color: 1, 1, 1, 1
+                    disabled: True
+                    on_release:
+                        root.restart_server()
+
+                MDBoxLayout:
+                    orientation: "vertical"
+                    spacing: "6dp"
+                    MDLabel:
+                        id: tps_label
+                        text: "TPS: 0"
+                        halign: "right"
+                        theme_text_color: "Custom"
+                        text_color: 0.25, 0.9, 0.9, 1
+                    MDLabel:
+                        id: players_label
+                        text: "Players: N/A"
+                        halign: "right"
+                        theme_text_color: "Custom"
+                        text_color: 0.25, 0.9, 0.9, 1
+
+            # === Players ===
+            MDCard:
+                id: players_card
+                orientation: "vertical"
+                md_bg_color: 0.16, 0.16, 0.2, 1
+                radius: [20]
+                padding: "15dp"
+                spacing: "12dp"
+                elevation: 8
+                size_hint_y: None
+                height: "300dp"
+
+                MDLabel:
+                    id: players_card_label
+                    text: "Players Online"
+                    halign: "center"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.8, 0.9, 1, 1
+
+                MDTextField:
+                    id: player_name
+                    hint_text: "Search Player"
+                    mode: "rectangle"
+                    radius: [12]
+                    size_hint_y: None
+                    height: "50dp"
+                    text_color: 0.9, 0.9, 1, 1
+                    line_color_normal: 0.4, 0.7, 1, 1
+
+                MDSeparator:
+
+                MDScrollView:
+                    MDBoxLayout:
+                        id: scroll_box
+                        orientation: "vertical"
+                        adaptive_height: True
+                        spacing: "6dp"
+
+                        MDLabel:
+                            id: scroll_placeholder
+                            text: ""
+                            halign: "center"
+                            theme_text_color: "Custom"
+                            text_color: 0.6, 0.7, 0.8, 1
+
+                # === Bottom Menu Buttons ===
+            MDCard:
+                id: bottom_menu_card
+                orientation: "horizontal"
+                size_hint_y: None
+                height: "60dp"
+                padding: "10dp"
+                spacing: "20dp"
+                md_bg_color: 0.12, 0.12, 0.15, 1
+                radius: [20, 20, 0, 0]
+                elevation: 6
+
+                MDLabel:
+                    id: tab_status
+                    text: "Server Status"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("status")
+
+                MDLabel:
+                    id: tab_players
+                    text: "Players"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("players")
+
+                MDLabel:
+                    id: tab_console
+                    text: "Console"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("console")
+
+                MDLabel:
+                    id: tab_logs
+                    text: "Server Files"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("server_file")
+
+                MDLabel:
+                    id: tab_props
+                    text: "Properties"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("server_properties")
+
+                MDLabel:
+                    id: tab_home
+                    text: "Home"
+                    halign: "center"
+                    font_style: "Button"
+                    theme_text_color: "Custom"
+                    text_color: 1, 1, 1, 1
+                    on_touch_down: if self.collide_point(*args[1].pos): root.set_screen("homescreen")
+
+
+
+            # === Graph Section ===
+            MDCard:
+                id: ram_graph_card
+                orientation: "vertical"
+                md_bg_color: 0.12, 0.12, 0.15, 1
+                radius: [20]
+                padding: "15dp"
+                spacing: "12dp"
+                elevation: 8
+                size_hint_y: None
+                height: "500dp"
+
+                MDLabel:
+                    id: title_graph
+                    text: "CPU & RAM Usage Graph"
+                    halign: "center"
+                    font_style: "H6"
+                    theme_text_color: "Custom"
+                    text_color: 0.8, 0.9, 1, 1
+                    size_hint_y: None
+                    height: "40dp"
+
+                BoxLayout:
+                    id: graph_container
+                    orientation: "vertical"
+                    size_hint_y: 1
+                    spacing: "8dp"
+
+                    Widget:   # placeholder for graph
+                        id: graph_placeholder
+
+                    BoxLayout:   # legend container
+                        id: legend_box
+                        orientation: "horizontal"
+                        size_hint_y: None
+                        height: "30dp"
+                        padding: "10dp"
+                        spacing: "40dp"
+
+                        BoxLayout:   # CPU Legend
+                            orientation: "horizontal"
+                            size_hint_x: None
+                            width: self.minimum_width
+                            spacing: "5dp"
+                            Widget:
+                                size_hint: None, None
+                                size: "15dp", "15dp"
+                                canvas:
+                                    Color:
+                                        rgba: 1, 0.25, 0.25, 1   # red dot for CPU
+                                    Ellipse:
+                                        size: self.size
+                                        pos: self.pos
+                            MDLabel:
+                                id: cpu_label_graph
+                                text: "CPU: 0%"
+                                halign: "left"
+                                theme_text_color: "Custom"
+                                text_color: 1, 0.3, 0.3, 1
+                                size_hint_x: None
+                                adaptive_width: True
+
+                        BoxLayout:   # RAM Legend
+                            orientation: "horizontal"
+                            size_hint_x: None
+                            width: self.minimum_width
+                            spacing: "5dp"
+                            Widget:
+                                size_hint: None, None
+                                size: "15dp", "15dp"
+                                canvas:
+                                    Color:
+                                        rgba: 0.25, 0.9, 0.25, 1   # green dot for RAM
+                                    Ellipse:
+                                        size: self.size
+                                        pos: self.pos
+                            MDLabel:
+                                id: ram_label_graph
+                                text: "RAM: 0%"
+                                halign: "left"
+                                theme_text_color: "Custom"
+                                text_color: 0.3, 1, 0.3, 1
+                                size_hint_x: None
+                                adaptive_width: True

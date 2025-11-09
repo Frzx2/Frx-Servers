@@ -1,0 +1,163 @@
+/* === Global Styles === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  height: 100vh;
+  font-family: 'Poppins', sans-serif;
+
+  /* Softer, reversed gradient: darker at top-left → lighter bottom-right */
+  background: linear-gradient(135deg, #0d1a20 0%, #1b3844 50%, #20b4c7 100%);
+  background-attachment: fixed;
+
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* === Container === */
+.setup-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  text-align: center;
+}
+
+/* === Card Styling === */
+.setup-card {
+  display: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+  padding: 40px 35px;
+  animation: fadeIn 0.5s ease forwards;
+  transition: all 0.3s ease;
+}
+
+.setup-card.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Typography === */
+h1 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 15px 0 10px;
+}
+
+h1 span {
+  color: #00d7f5;
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #00d7f5;
+}
+
+p {
+  font-size: 14px;
+  opacity: 0.85;
+  margin-bottom: 20px;
+}
+
+/* === Logo === */
+.setup-logo {
+  width: 90px;
+  height: 90px;
+  border-radius: 20%;
+  margin-bottom: 15px;
+  box-shadow: 0 0 25px rgba(0, 224, 255, 0.35);
+}
+
+/* === Inputs === */
+.input-group input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+  border-color: #00d7f5;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* === Buttons === */
+button {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 15px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.primary-btn {
+  background: linear-gradient(90deg, #00d7f5, #0097a7);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 224, 255, 0.3);
+}
+
+.primary-btn:hover {
+  background: linear-gradient(90deg, #00bcd4, #007c91);
+  transform: scale(1.05);
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* === Button Group === */
+.btn-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+/* === Status Message === */
+#status-msg {
+  margin-top: 15px;
+  font-size: 13px;
+  color: #ff9b9b;
+  min-height: 18px;
+}

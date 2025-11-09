@@ -1,0 +1,121 @@
+<Finalize_Server>:
+    name: "finalize_server"
+
+    MDBoxLayout:
+        orientation: "vertical"
+        md_bg_color: 0.1, 0.1, 0.12, 1   # dark background
+        padding: "20dp"
+
+        Widget:  # pushes card to vertical center
+
+        MDCard:
+            orientation: "vertical"
+            size_hint: 0.9, None
+            height: self.minimum_height
+            padding: "25dp"
+            spacing: "20dp"
+            pos_hint: {"center_x": 0.5}
+            radius: [25, 25, 25, 25]
+            md_bg_color: 0.16, 0.16, 0.18, 1   # dark grey card
+            elevation: 10
+
+            MDLabel:
+                text: "⚙ Server Configuration"
+                halign: "center"
+                font_style: "H6"
+                theme_text_color: "Custom"
+                text_color: 0.6, 0.8, 1, 1   # bluish highlight
+                size_hint_y: None
+                height: self.texture_size[1]
+
+            MDSeparator:
+                color: 0.3, 0.3, 0.35, 1
+
+            MDLabel:
+                id: server_name
+                text: "Server Name: ..."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 0.9
+                font_style: "Body1"
+
+            MDLabel:
+                id: server_version
+                text: "Version: ..."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 0.9
+                font_style: "Body1"
+
+            MDLabel:
+                id: server_ram
+                text: "RAM: ..."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 0.9
+                font_style: "Body1"
+
+            MDLabel:
+                id: server_type
+                text: "Server Type: ..."
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 0.9
+                font_style: "Body1"
+
+            MDLabel:
+                id: error_label
+                text: ""
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: 1, 0.4, 0.4, 1   # red for errors
+                font_style: "Body1"
+
+            MDSeparator:
+                color: 0.3, 0.3, 0.35, 1
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                padding: "10dp"
+                spacing: "10dp"
+                size_hint_y: None
+                height: "40dp"
+                pos_hint: {"center_x": 0.5}
+
+                MDCheckbox:
+                    id: eula_checkbox
+                    size_hint: None, None
+                    size: "28dp", "28dp"
+                    pos_hint: {"center_y": 0.5}
+                    theme_text_color: "Custom"
+                    color: 0.2, 0.6, 1, 1   # blue accent
+
+                MDLabel:
+                    text: "I accept the Minecraft EULA"
+                    halign: "left"
+                    valign: "middle"
+                    theme_text_color: "Custom"
+                    text_color: 0.9, 0.9, 0.9, 1
+
+            MDBoxLayout:
+                orientation: "horizontal"
+                spacing: "20dp"
+                size_hint_y: None
+                height: "50dp"
+                pos_hint: {"center_x": 0.5}
+
+                MDRaisedButton:
+                    text: "Back"
+                    md_bg_color: 0.25, 0.25, 0.25, 1
+                    text_color: 1, 1, 1, 1
+                    elevation: 8
+                    on_release: app.root.current = "JavaDetection"
+
+                MDRaisedButton:
+                    text: "Confirm & Save"
+                    md_bg_color: 0.2, 0.6, 1, 1   # blue highlight
+                    text_color: 1, 1, 1, 1
+                    elevation: 8
+                    on_release: root.finalize()
+
+        Widget:  # pushes card to vertical center

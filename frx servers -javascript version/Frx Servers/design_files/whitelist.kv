@@ -1,0 +1,93 @@
+<Server_Whitelist>:
+    MDBoxLayout:
+        orientation: "vertical"
+        spacing: "12dp"
+        padding: "12dp"
+        md_bg_color: 0.1, 0.1, 0.12, 1
+
+        # --- MAIN HEADER ---
+        MDLabel:
+            text: "Server Whitelist"
+            font_style: "H3"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            halign: "center"
+            size_hint_y: None
+            height: "64dp"
+
+        # --- HEADER BAR ---
+        MDBoxLayout:
+            orientation: "horizontal"
+            size_hint_y: None
+            height: "56dp"
+            spacing: "10dp"
+
+            MDLabel:
+                text: "Whitelist"
+                font_style: "H5"
+                theme_text_color: "Custom"
+                text_color: 1, 1, 1, 1
+                halign: "left"
+                valign: "center"
+
+            Widget:
+
+            MDTextField:
+                id: add_whitelist
+                hint_text: "Enter username..."
+                mode: "rectangle"
+                size_hint_x: 0.45
+                fill_color: 0.18, 0.18, 0.22, 1
+                line_color_normal: 0, 0.7, 1, 1     # BLUE border (default)
+                line_color_focus: 0, 0.7, 1, 1    # Cyan-Blue border (focused)
+                text_color_normal: 1, 1, 1, 1     # input text white
+                text_color_focus: 1, 1, 1, 1      # input text white
+                hint_text_color_normal: 1, 1, 1, 1  # hint white
+                hint_text_color_focus: 1, 1, 1, 1   # hint white
+
+            MDFillRoundFlatIconButton:
+                icon: "account-plus"
+                text: "Add"
+                md_bg_color: 0.1, 0.6, 0.1, 1
+                text_color: 1, 1, 1, 1
+                on_release:
+                    root.add_to_whitelist(add_whitelist.text)
+                    add_whitelist.text = ""
+
+        # --- SEARCH BAR ---
+        MDTextField:
+            id: search_whitelist
+            hint_text: "Search players..."
+            mode: "rectangle"
+            size_hint_y: None
+            height: "48dp"
+            fill_color: 0.18, 0.18, 0.22, 1
+            line_color_normal: 0, 0.7, 1, 1
+            line_color_focus: 0, 0.7, 1, 1
+            text_color_normal: 1, 1, 1, 1
+            text_color_focus: 1, 1, 1, 1
+            hint_text_color_normal: 1, 1, 1, 1
+            hint_text_color_focus: 1, 1, 1, 1
+            on_text: root.on_search_whitelist_text(self, self.text)
+
+        # --- STATUS ---
+        MDLabel:
+            id: whitelist_status
+            text: ""
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 1, 0.5, 0.2, 1
+            size_hint_y: None
+            height: "28dp"
+
+        # --- PLAYER LIST ---
+        ScrollView:
+            MDList:
+                id: whitelisted_players_list
+
+        # --- BOTTOM BACK BUTTON ---
+        MDFloatingActionButton:
+            icon: "arrow-left"
+            md_bg_color: 0.2, 0.6, 0.9, 1
+            pos_hint: {"center_x": 0.5}
+            on_release: root.set_screen("players") if hasattr(root, "set_screen") else print("back")

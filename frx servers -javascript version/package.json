@@ -1,0 +1,23 @@
+{
+  "name": "electron",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^39.0.0"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "chart.js": "^4.5.1",
+    "pidusage": "^4.0.1",
+    "systeminformation": "^5.27.11"
+  }
+}

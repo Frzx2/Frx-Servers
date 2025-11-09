@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="server_version.css" />
+  <script defer src="server_version.js"></script>
+  <title>Select Server Version</title>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Select Minecraft Version</h1>
+    <p class="subtitle-main">
+      Choose the version you want your server to run on.
+      You can search for specific releases or scroll through the list below.
+    </p>
+
+    <div class="search-box">
+  <input type="text" id="search-input" placeholder="Search version... (e.g. 1.20)" />
+
+  <div class="filter-options">
+    <label class="filter">
+      <input type="checkbox" id="release-check" checked>
+      <span>Releases</span>
+    </label>
+    <label class="filter">
+      <input type="checkbox" id="snapshot-check">
+      <span>Snapshots</span>
+    </label>
+  </div>
+</div>
+
+    <div class="version-list" id="version-list">
+      <p class="loading-text">Fetching available versions...</p>
+    </div>
+
+    <p id="selected-version-label">No version selected</p>
+
+    <div class="buttons">
+      <button id="back-btn">← Back</button>
+      <button id="next-btn">Next →</button>
+    </div>
+  </div>
+</body>
+</html>

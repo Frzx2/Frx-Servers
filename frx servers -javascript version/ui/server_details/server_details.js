@@ -9,29 +9,39 @@ const process = require("process");
 const os = require("os");
 const { app } = require('electron');
 const si = require("systeminformation");
-const pidusage = require("pidusage");
+const { error } = require("console");
+const { exec,execSync } = require("child_process");
+const https = require("https");
+
 
 // === Initialization ===
 document.addEventListener("DOMContentLoaded", () => {
   const serverPath = localStorage.getItem("selectedServerPath");
+  document.getElementById("player-search").addEventListener("input", filterPlayers);
 
   if (!serverPath || !fs.existsSync(serverPath)) {
     console.error("⚠️ No valid server path found.");
-    alert("Server folder not found.");
+    showToast("Server folder not found!", "error", true);
     return;
   }
 
   window.serverPath = serverPath;
   loadServerInfo(serverPath);
-
+  loadServerProperties(serverPath);
 
   // 🪶 Initialize Feather icons
   if (typeof feather !== "undefined") {
     feather.replace();
   } else {
     console.warn("⚠️ Feather icons not loaded. Make sure feather.min.js is included in your HTML.");
+    showToast("Feather icons not loaded", "warning");
   }
+  // Server Management 
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const playerList = document.getElementById("pm-list");
+  setupPropertyChangeDetection(); 
 
+  setupPlayerTabs();
   // 🧩 Copy button logic
   const copyBtn = document.getElementById("copy-ip-btn");
   const ipElement = document.getElementById("server-ip");
@@ -39,8 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (copyBtn && ipElement) {
     copyBtn.addEventListener("click", () => {
       const ipText = ipElement.textContent.replace("IP:", "").trim();
+
       if (!ipText || ipText === "--.--.--.--") {
-        alert("No IP address to copy yet!");
+        showToast("No IP address to copy yet!", "warning", true);
         return;
       }
 
@@ -48,6 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(() => {
           copyBtn.innerHTML = '<i data-feather="check"></i>';
           feather.replace();
+          showToast("IP copied to clipboard!", "success");
+
           setTimeout(() => {
             copyBtn.innerHTML = '<i data-feather="copy"></i>';
             feather.replace();
@@ -55,12 +68,11 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch(err => {
           console.error("Clipboard error:", err);
-          alert("Failed to copy IP!");
+          showToast("Failed to copy IP!", "error", true);
         });
     });
   }
 });
-
 
 home_screen.addEventListener("click",()=>{
   window.location.href = "../home_screen/home_screen.html";
@@ -97,6 +109,7 @@ function loadServerInfo(serverPath) {
       setText("server-version", `Version: ${data.server_version || "Unknown"}`);
       setText("server-status", `Status: ${data.server_status || "Offline"}`);
       setText("server-type", `Type: ${data.server_type || "Unknown"}`);
+      setText("player-count", `Players: ${data.players}` )
 
     } catch (err) {
       console.error("❌ Failed to read server_info.json:", err);
@@ -122,11 +135,6 @@ function setText(id, text) {
 function normalize(p) {
   return p.replace(/\\/g, "/");
 }
-function ShowToast(message) {
-  const toast = document.createElement("div");
-  toast.className = "toast";}
-
-
 
 // === Server Status Update Function ===
 // Pass true for Online, false for Offline
@@ -299,6 +307,7 @@ async function startServer() {
     appendConsole(`❌ server.jar not found in: ${jarPath}`, "error");
     toggleButtons("hidden");
     setServerState("offline");
+    stopPlayerMonitor();
     return;
   }
   // === Verify and enforce RCON configuration ===
@@ -306,6 +315,8 @@ async function startServer() {
     appendConsole("⚠️ server.properties not found — cannot verify RCON.", "error");
     toggleButtons("hidden");
     toggleServerStatus(false);
+    stopPlayerMonitor();
+    setServerState("offline");
     return;
   }
 
@@ -351,6 +362,7 @@ try {
     appendConsole("❌ RCON verification failed after save — cannot continue.", "error");
     toggleButtons("hidden");
     setServerState("offline");
+    stopPlayerMonitor();
     return;
   }
 
@@ -359,6 +371,7 @@ try {
   appendConsole(`❌ Failed to verify or update RCON: ${err}`, "error");
   toggleButtons("hidden");
   setServerState("offline");
+  stopPlayerMonitor();
   return;
 }
 
@@ -403,6 +416,8 @@ try {
         appendConsole("✅ Server started successfully and is now running!", "success");
         setServerState("online");
         isServerRunning = true;
+        showToast("Server Started!", "success");
+        startPlayerMonitor(serverProcess);
       }
     });
 
@@ -412,8 +427,9 @@ try {
 
     serverProcess.on("exit", (code) => {
       appendConsole(`🛑 Server exited with code ${code}`, "error");
+      showToast("Server Stopped", "error");
       toggleButtons("hidden");
-      setServerState("stopped");
+      setServerState("offline");
       stopPlayit();
     });
 
@@ -422,19 +438,21 @@ try {
 
   } catch (err) {
     appendConsole(`❌ Failed to start server process: ${err}`, "error");
+    showToast("Server Stoped!","error");
     toggleButtons("hidden");
-    setServerState("stopped");
     stopPlayit();
+    stopPlayerMonitor();
+    setServerState("offline");
   }
 }
-
 
 async function stopServer() {
   appendConsole("Stopping server...");
   if (!serverProcess || !isServerRunning) {
     appendConsole("No running server process found.");
     toggleButtons("hidden");
-    setServerState("stopped");
+    stopPlayerMonitor();
+    setServerState("offline");
     return;
   }
 
@@ -531,10 +549,10 @@ async function stopServer() {
   } catch (err) {
     appendConsole(`Error updating server_info.json: ${err.message}`);
   }
-
-  clearAllPlayerCards?.();
   appendConsole("Server fully stopped.");
+  stopPlayerMonitor();
   setServerState("offline");
+  
 }
 
 function ensureRconCredentials() {
@@ -558,6 +576,7 @@ async function restartServer() {
   appendConsole("Restarting server...");
   disableButtons();
   setServerState("restarting");
+  showToast("Restarting Server", "problem");
 
   try {
     // --- Stop current server ---
@@ -617,9 +636,6 @@ async function killServer() {
     isServerRunning = false;
     serverProcess = null;
     stopPlayit();
-    try { stopMonitoring?.(); } catch {}
-    try { stopUptime?.(); } catch {}
-    try { stopBatteryMonitor?.(); } catch {}
 
     // --- Update info file ---
     try {
@@ -627,12 +643,11 @@ async function killServer() {
       const infoPath = path.join(baseDir, "server_info.json");
       if (fs.existsSync(infoPath)) {
         const data = JSON.parse(fs.readFileSync(infoPath, "utf8"));
-        data.server_status = "Offline (Force Stopped)";
+        data.server_status = "Offline";
         data.server_players = "Players: N/A";
         data.player_list = [];
         data.server_tps = "N/A";
         fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf8");
-        appendConsole("Updated server_info.json -> Force stopped");
       }
     } catch (err) {
       appendConsole(`Error updating server_info.json: ${err.message}`);
@@ -641,11 +656,14 @@ async function killServer() {
     clearAllPlayerCards?.();
 
     appendConsole("Server process killed successfully.");
+    showToast("Server Killed", "error");
+    stopPlayerMonitor();
     setServerState("offline");
     toggleButtons("stopped");
 
     // Reset IP / tunnel
     server_ip = "IP: Tunnel Stopped";
+    
   } catch (err) {
     appendConsole(`Kill server error: ${err.message}`);
     setServerState("offline");
@@ -782,7 +800,219 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-// === Monitor Players ===
+// === Server Properties ===
+
+// === Bind save button ===
+document.getElementById("save-properties-btn").addEventListener("click", saveServerProperties);
+
+// === Detect Property Changes ===
+let lastToastTime = 0;
+
+function setupPropertyChangeDetection() {
+  const propertiesSection = document.getElementById("properties");
+  const inputs = propertiesSection.querySelectorAll("input, select");
+
+  inputs.forEach(input => {
+    input.addEventListener("change", () => {
+      const now = Date.now();
+      if (now - lastToastTime > 500) { // 0.5 seconds cooldown
+        showToast(`Property "${input.id || input.name || 'unknown'}" changed. Save Properties to Apply the Changes`, "problem");
+        lastToastTime = now;
+      }
+    });
+  });
+}
+// load Server Properties
+
+function loadServerProperties(serverPath) {
+  try {
+    const propertiesFile = path.join(serverPath, "server.properties");
+
+    if (!fs.existsSync(propertiesFile)) {
+      console.error("❌ server.properties not found at:", propertiesFile);
+      return;
+    }
+
+    const fileData = fs.readFileSync(propertiesFile, "utf8");
+    const lines = fileData.split(/\r?\n/);
+
+    // Parse properties into an object
+    const properties = {};
+    for (const line of lines) {
+      if (!line || line.startsWith("#")) continue; // Skip comments or empty lines
+      const [key, value] = line.split("=");
+      if (key && value !== undefined) {
+        properties[key.trim()] = value.trim();
+      }
+    }
+
+    // Apply each property to the UI
+    Object.entries(properties).forEach(([key, value]) => {
+      const element = document.getElementById(key);
+      if (!element) return; // skip if UI doesn't have a matching ID
+
+      // Handle different input types
+      if (element.tagName === "SELECT") {
+        element.value = value;
+      } else if (element.tagName === "INPUT") {
+        if (element.type === "number") {
+          element.value = parseInt(value, 10);
+        } else if (element.type === "checkbox") {
+          element.checked = value === "true";
+        } else {
+          element.value = value;
+        }
+      }
+    });
+
+    console.log("✅ Server properties loaded into UI successfully!");
+  } catch (error) {
+    console.error("⚠️ Error loading server.properties:", error);
+  }
+}
+
+// === Save Properties ===
+async function saveServerProperties() {
+  if (!serverPath) {
+    showToast("Server path not found.", "error");
+    return;
+  }
+
+  // Read all property values
+  const propertiesSection = document.getElementById("properties");
+  const allInputs = propertiesSection.querySelectorAll("input, select");
+  const newProperties = {};
+
+  allInputs.forEach(el => {
+    const id = el.id;
+    let value = el.value;
+    newProperties[id] = value;
+  });
+
+  // If server running, ask confirmation
+  if (isServerRunning && serverProcess) {
+    const ask = await showToast(
+      "Server must be restarted to apply these properties. Restart now?",
+      "problem",
+      true
+    );
+
+    if (ask) {
+      await writePropertiesToFile(newProperties);
+      restartServer();
+    } else {
+      await writePropertiesToFile(newProperties);
+      showToast("Properties saved. Changes will take effect after restart.", "success");
+    }
+  } else {
+    await writePropertiesToFile(newProperties);
+    showToast("Properties saved successfully.", "success");
+  }
+
+  propertiesChanged = false;
+}
+
+// === Write to server.properties file ===
+async function writePropertiesToFile(newProperties) {
+  const filePath = path.join(serverPath, "server.properties");
+  console.log("📝 Saving properties to:", filePath);
+
+  try {
+    // === Step 1: Read existing file ===
+    let existing = {};
+    if (fs.existsSync(filePath)) {
+      const lines = fs.readFileSync(filePath, "utf-8").split(/\r?\n/);
+      for (const line of lines) {
+        if (!line.trim() || line.startsWith("#")) continue;
+        const [key, ...rest] = line.split("=");
+        existing[key.trim()] = rest.join("=").trim();
+      }
+    }
+
+    // === Step 2: Merge with new changes ===
+    const updated = { ...existing, ...newProperties };
+
+    // === Step 3: Build new content ===
+    const header = `#Minecraft server properties\n#${new Date().toString()}\n`;
+    let content = header;
+    for (const [key, value] of Object.entries(updated)) {
+      content += `${key}=${value}\n`;
+    }
+
+    fs.writeFileSync(filePath, content, "utf-8");
+    console.log("✅ Properties saved successfully!");
+    return true;
+  } catch (err) {
+    console.error("❌ Error writing server.properties:", err);
+    showToast("Failed to save properties.", "error");
+    return false;
+  }
+}
+
+// === Show Toast === //
+async function showToast(msg, type = "success", ask = false) {
+  return new Promise((resolve) => {
+    // Create the container if it doesn’t exist
+    let container = document.querySelector(".toast-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "toast-container";
+      document.body.appendChild(container);
+    }
+
+    // Create the toast element
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span class="toast-msg">${msg}</span>`;
+
+    // If ask=true, add Yes/No buttons
+    if (ask) {
+      const btns = document.createElement("div");
+      btns.className = "toast-buttons";
+
+      const yesBtn = document.createElement("button");
+      yesBtn.textContent = "Yes";
+      yesBtn.className = "toast-btn yes";
+
+      const noBtn = document.createElement("button");
+      noBtn.textContent = "No";
+      noBtn.className = "toast-btn no";
+
+      btns.appendChild(yesBtn);
+      btns.appendChild(noBtn);
+      toast.appendChild(btns);
+
+      // Set up listeners
+      yesBtn.onclick = () => closeToast(true);
+      noBtn.onclick = () => closeToast(false);
+    }
+
+    container.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => toast.classList.add("show"), 100);
+
+    // Timeout handling
+    const timeout = setTimeout(() => {
+      closeToast(false);
+    }, ask ? 10000 : 3000);
+
+    // Close toast function
+    function closeToast(value) {
+      clearTimeout(timeout);
+      toast.classList.remove("show");
+      setTimeout(() => {
+        toast.remove();
+        resolve(value);
+      }, 400);
+    }
+
+    // Auto-close if not ask
+    if (!ask) {
+      setTimeout(() => closeToast(true), 5000);
+    }
+  });
+}
 
 
 // === Navigation Menu ===
@@ -796,14 +1026,6 @@ document.querySelectorAll(".menu-btn").forEach(btn => {
   });
 });
 
-// === Graph Time Buttons ===
-document.querySelectorAll(".graph-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".graph-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    console.log(`Graph range switched to: ${btn.dataset.range} minutes`);
-  });
-});
 
 // === Open Folder ===
 const openFolderBtn = document.getElementById("open-folder-btn");
@@ -818,6 +1040,10 @@ let uptimeSeconds = 0;
 let selectedRange = 5; // default 5 minutes (300 seconds)
 let maxPoints = selectedRange * 60; // Make this variable not constant so we can update it
 let lastCpuLoad = 0;
+
+let allLabels = []; // stores full-time labels (timestamps)
+let allCPU = [];    // stores full CPU history
+let allRAM = [];    // stores full RAM history
 
 // === UI Elements ===
 const cpuUsageEl = document.getElementById("cpu-usage");
@@ -945,7 +1171,7 @@ async function startGraph() {
   if (graphInterval) return;
   startUptime();
 
-  appendConsole("📊 Starting system CPU/RAM monitoring...", "info");
+  appendConsole(" Starting system CPU/RAM monitoring...", "info");
 
   // Warm up systeminformation
   await getSystemUsage();
@@ -955,7 +1181,6 @@ async function startGraph() {
     try {
       const usage = await getSystemUsage();
       const totalCPU = usage.cpu;
-      console.log(`cpu usage is ${totalCPU}`)
       const totalRAMPercent = usage.ramPercent;
       const usedRAMMB = usage.ramUsedMB;
 
@@ -973,20 +1198,31 @@ async function startGraph() {
 
       // === Update Chart ===
       const timeLabel = new Date().toLocaleTimeString();
-      chart.data.labels.push(timeLabel);
-      chart.data.datasets[0].data.push(totalCPU);
-      chart.data.datasets[1].data.push(totalRAMPercent);
+      // Store full history
+        allLabels.push(timeLabel);
+        allCPU.push(totalCPU);
+        allRAM.push(totalRAMPercent);
 
-      while (chart.data.labels.length > maxPoints) {
-        chart.data.labels.shift();
-        chart.data.datasets.forEach((d) => d.data.shift());
-      }
+        // Update visible range
+        updateChartData();
 
-      chart.update("none");
     } catch (err) {
       console.error("⚠️ Graph update failed:", err);
     }
-  }, 2000); // 2 second interval for more stable readings
+  }, 1000); // Update every 2 seconds
+}
+
+// === Function to show data of current selectedRange ===
+function updateChartData() {
+  const keepCount = maxPoints;
+  const totalPoints = allLabels.length;
+  const startIndex = Math.max(0, totalPoints - keepCount);
+
+  chart.data.labels = allLabels.slice(startIndex);
+  chart.data.datasets[0].data = allCPU.slice(startIndex);
+  chart.data.datasets[1].data = allRAM.slice(startIndex);
+
+  chart.update("none");
 }
 
 // === Stop Monitoring Graph ===
@@ -998,6 +1234,11 @@ function stopGraph() {
     }
 
     if (typeof stopUptime === "function") stopUptime();
+
+    // Clear stored data completely
+    allLabels = [];
+    allCPU = [];
+    allRAM = [];
 
     if (chart && chart.data) {
       chart.data.labels = [];
@@ -1017,45 +1258,33 @@ function stopGraph() {
   }
 }
 
-// === Range Buttons ===
+// === Range Buttons Logic ===
 document.querySelectorAll(".graph-btn[data-range]").forEach((btn) => {
   btn.addEventListener("click", () => {
     // Update button states
     document.querySelectorAll(".graph-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
-    
-    // Update range and points limit
+
+    // Update range and max points
     selectedRange = parseInt(btn.dataset.range);
-    maxPoints = selectedRange * 60; // Update the global maxPoints variable
-    
-    // Trim existing data if longer than new range
-    if (chart.data.labels.length > maxPoints) {
-      const keepCount = Math.min(chart.data.labels.length, maxPoints);
-      chart.data.labels = chart.data.labels.slice(-keepCount);
-      chart.data.datasets.forEach((dataset) => {
-        dataset.data = dataset.data.slice(-keepCount);
-      });
-    }
-    
-    // Clear existing interval and start a new one with updated range
-    if (graphInterval) {
-      clearInterval(graphInterval);
-      startGraph(); // Restart the graph with new range
-    }
-    
-    chart.update('none'); // Update without animation
+    maxPoints = selectedRange * 60; // assume 1 point/sec (adjust if using different interval)
+
+    // Update chart view window based on stored data
+    updateChartData();
   });
 });
 
 // === Uptime ===
+let uptimeStart = null;
+
 function startUptime() {
   clearInterval(uptimeInterval);
-  uptimeSeconds = 0;
+  uptimeStart = Date.now();
   uptimeInterval = setInterval(() => {
-    uptimeSeconds++;
-    const h = String(Math.floor(uptimeSeconds / 3600)).padStart(2, "0");
-    const m = String(Math.floor((uptimeSeconds % 3600) / 60)).padStart(2, "0");
-    const s = String(uptimeSeconds % 60).padStart(2, "0");
+    const diff = Math.floor((Date.now() - uptimeStart) / 1000);
+    const h = String(Math.floor(diff / 3600)).padStart(2, "0");
+    const m = String(Math.floor((diff % 3600) / 60)).padStart(2, "0");
+    const s = String(diff % 60).padStart(2, "0");
     uptimeEl.textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
@@ -1064,23 +1293,364 @@ function stopUptime() {
   clearInterval(uptimeInterval);
   uptimeEl.textContent = "--:--:--";
 }
-// dummy fucntions Later will be used 
-function loadConfig() {
-  console.log("Loading config file...");
-  return { server_location: "C:/Servers", server_type: "vanilla" };
+
+// === Monitoring  Players ===
+let playerList = [];
+let playerMonitorActive = false;
+let maxPlayers = 0;
+let serverProc;
+
+
+function getMaxPlayers() {
+  try {
+    const baseDir = localStorage.getItem("selectedServerPath");
+    const propertiesPath = path.join(baseDir, "server.properties");
+
+    if (fs.existsSync(propertiesPath)) {
+      const lines = fs.readFileSync(propertiesPath, "utf8").split("\n");
+      for (const line of lines) {
+        if (line.startsWith("max-players=")) {
+          return parseInt(line.split("=")[1].trim()) || 0;
+        }
+      }
+    }
+  } catch (err) {
+    appendConsole(`⚠️ Could not read max-players: ${err.message}`, "error");
+  }
+  return 0;
 }
 
-function replaceLog(msg) {
-  console.log(`[LOG] ${msg}`);
+function startPlayerMonitor(proc) {
+  if (playerMonitorActive) return;
+  playerMonitorActive = true;
+  serverProc = proc
+  playerList = [];
+  maxPlayers = getMaxPlayers();
+
+  proc.stdout.on("data", (data) => {
+    if (!playerMonitorActive) return;
+    const text = data.toString();
+
+    // === Player Join ===
+    const joinMatch = text.match(/\[Server thread\/INFO\]: (.+) joined the game/);
+    if (joinMatch) {
+      const playerName = joinMatch[1].trim();
+      if (!playerList.includes(playerName)) {
+        playerList.push(playerName);
+        updatePlayerCard(playerName, true);
+        updatePlayerInfoFile();
+      }
+    }
+
+    // === Player Leave ===
+    const leaveMatch = text.match(/\[Server thread\/INFO\]: (.+) left the game/);
+    if (leaveMatch) {
+      const playerName = leaveMatch[1].trim();
+      playerList = playerList.filter(p => p !== playerName);
+      updatePlayerCard(playerName, false);
+      updatePlayerInfoFile();
+    }
+  });
+}
+
+function stopPlayerMonitor() {
+  if (!playerMonitorActive) return;
+  playerMonitorActive = false;
+  serverProc = null;
+  appendConsole("🛑 Player Monitor Stopped", "info");
+
+  playerList = [];
+  const listContainer = document.getElementById("player-list");
+  if (listContainer) listContainer.innerHTML = "";
+
+  updatePlayerInfoFile(true);
+}
+
+function updatePlayerCard(playerName, joined) {
+  const playerListContainer = document.getElementById("player-list");
+  const playerCountEl = document.getElementById("player-count");
+
+  // Update player count text
+  playerCountEl.textContent = `Players: ${playerList.length}/${maxPlayers}`;
+
+  if (joined) {
+    // If player already exists, skip
+    if (document.getElementById(`player-${playerName}`)) return;
+
+    // === Create player card ===
+    const card = document.createElement("div");
+    card.classList.add("player-card");
+    card.id = `player-${playerName}`;
+
+    card.innerHTML = `
+      <img src="https://minotar.net/helm/${playerName}/32.png" class="player-avatar" alt="${playerName}" />
+      <span class="player-name">${playerName}</span>
+      <button class="kick-btn" onclick="kickPlayer('${playerName}')">Kick</button>
+      <button class="ban-btn" onclick="banPlayer('${playerName}')">Ban</button>
+    `;
+
+    playerListContainer.appendChild(card);
+  } else {
+    // === Remove player card ===
+    const card = document.getElementById(`player-${playerName}`);
+    if (card) card.remove();
+    playerCountEl.textContent = `Players: ${playerList.length}/${maxPlayers}`;
+  }
+}
+
+function updatePlayerInfoFile(clear = false) {
+  try {
+    const baseDir = localStorage.getItem("selectedServerPath");
+    const infoPath = path.join(baseDir, "server_info.json");
+
+    if (fs.existsSync(infoPath)) {
+      const data = JSON.parse(fs.readFileSync(infoPath, "utf8"));
+
+      if (clear) {
+        data.players = "N/A";
+        data.player_list = [];
+      } else {
+        data.players = `${playerList.length}/${maxPlayers}`;
+        data.player_list = playerList;
+      }
+
+      fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf8");
+    }
+  } catch (err) {
+    appendConsole(`Error updating player info: ${err.message}`, "error");
+  }
+}
+
+function filterPlayers() {
+  const searchBox = document.getElementById("player-search");
+  console.log("player scearched")
+  if (!searchBox) return; // safety check
+
+  const filter = searchBox.value.toLowerCase();
+  const playerCards = document.querySelectorAll(".player-card");
+
+  playerCards.forEach(card => {
+    const nameEl = card.querySelector(".player-name");
+    if (!nameEl) return; // safety check if player-name element doesn’t exist
+
+    const playerName = nameEl.textContent.toLowerCase();
+    if (playerName.includes(filter)) {
+      card.style.display = "flex";
+    } else {
+      card.style.display = "none";
+    }
+  });
+}
+
+// === KICK PLAYER ===
+function kickPlayer(playerName) {
+  if (!serverProc || !playerMonitorActive) {
+    appendConsole("⚠️ Server process not active. Cannot kick player.", "error");
+    return;
+  }
+
+  try {
+    serverProc.stdin.write(`kick ${playerName}\n`);
+    appendConsole(`👢 Kicked player: ${playerName}`, "warn");
+  } catch (err) {
+    appendConsole(`❌ Failed to kick ${playerName}: ${err.message}`, "error");
+  }
+}
+
+// === BAN PLAYER ===
+function banPlayer(playerName) {
+  if (!serverProc || !playerMonitorActive) {
+    appendConsole("⚠️ Server process not active. Cannot ban player.", "error");
+    return;
+  }
+
+  try {
+    serverProc.stdin.write(`ban ${playerName}\n`);
+    appendConsole(`⛔ Banned player: ${playerName}`, "error");
+  } catch (err) {
+    appendConsole(`❌ Failed to ban ${playerName}: ${err.message}`, "error");
+  }
+}
+// === PLAYER MANAGEMENT (Whitelist / Banned / Ops) ===
+
+// ==================== Player File Utilities ==================== //
+function getFilePath(type) {
+  const fileMap = {
+    ops: "ops.json",
+    whitelist: "whitelist.json",
+    banned: "banned-players.json"
+  };
+  return path.join(serverPath, fileMap[type]);
+}
+
+function readJSON(filePath) {
+  try {
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, "utf8");
+      return JSON.parse(data);
+    }
+    return [];
+  } catch (err) {
+    console.error(`Error reading ${filePath}:`, err);
+    return [];
+  }
+}
+
+function writeJSON(filePath, data) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error(`Error writing to ${filePath}:`, err);
+  }
+}
+
+// ==================== Mojang API ==================== //
+function fetchUUID(playerName) {
+  return new Promise((resolve) => {
+    const url = `https://api.mojang.com/users/profiles/minecraft/${playerName}`;
+    
+    https.get(url, (res) => {
+      let data = "";
+
+      res.on("data", (chunk) => (data += chunk));
+
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          const rawUUID = json?.id;
+
+          if (!rawUUID) return resolve(null);
+
+          // Convert to dashed format: 8-4-4-4-12
+          const dashedUUID = rawUUID.replace(
+            /^(.{8})(.{4})(.{4})(.{4})(.{12})$/,
+            "$1-$2-$3-$4-$5"
+          );
+
+          resolve(dashedUUID);
+        } catch {
+          resolve(null);
+        }
+      });
+    }).on("error", () => resolve(null));
+  });
+}
+
+// ==================== Player List UI ==================== //
+function renderPlayerList(type, playerListEl) {
+  playerListEl.innerHTML = "";
+  const filePath = getFilePath(type);
+  const players = readJSON(filePath);
+
+  if (players.length === 0) {
+    playerListEl.innerHTML = `<p class="pm-empty">No players found in ${type}.</p>`;
+    return;
+  }
+
+  players.forEach((player) => {
+    const card = document.createElement("div");
+    card.classList.add("pm-player-card");
+
+    card.innerHTML = `
+      <img src="https://mc-heads.net/avatar/${player.name || player.uuid}/32" class="pm-player-pic" />
+      <span class="pm-player-name">${player.name || player.uuid}</span>
+      <button class="pm-remove-btn">✖</button>
+    `;
+
+    card.querySelector(".pm-remove-btn").addEventListener("click", () => {
+      removePlayer(type, player.name || player.uuid, playerListEl);
+    });
+
+    playerListEl.appendChild(card);
+  });
+}
+
+// ==================== Add / Remove Players ==================== //
+async function addPlayer(type, playerName, inputEl, playerListEl) {
+  const filePath = getFilePath(type);
+  const players = readJSON(filePath);
+
+  if (!playerName.trim()) return;
+  if (players.some((p) => p.name === playerName))
+    return showToast("Player already exists", "error");
+
+  let newEntry;
+  if (type === "whitelist") {
+    const uuid = await fetchUUID(playerName);
+    newEntry = uuid
+      ? { uuid, name: playerName }
+      : { name: playerName };
+    if (!uuid)
+      appendConsole(`⚠️ Could not fetch UUID for "${playerName}" — added by name only.`, "warn");
+  } else if (type === "ops") {
+    newEntry = { uuid: "", name: playerName, level: 4, bypassesPlayerLimit: false };
+  } else if (type === "banned") {
+    newEntry = {
+      uuid: "",
+      name: playerName,
+      created: new Date().toISOString(),
+      source: "Server",
+      expires: "forever",
+      reason: "Banned by an operator."
+    };
+  }
+
+  players.push(newEntry);
+  writeJSON(filePath, players);
+  inputEl.value = "";
+  renderPlayerList(type, playerListEl);
+}
+
+function removePlayer(type, playerName, playerListEl) {
+  const filePath = getFilePath(type);
+  let players = readJSON(filePath);
+  players = players.filter((p) => p.name !== playerName);
+  writeJSON(filePath, players);
+  renderPlayerList(type, playerListEl);
+}
+
+// ==================== Tab Setup ==================== //
+function setupPlayerTabs() {
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const playerList = document.getElementById("pm-list");
+  const addBtn = document.getElementById("pm-add-btn");
+  const addInput = document.getElementById("pm-add-player-input");
+  let currentTab = "ops";
+
+  function switchTab(event) {
+    tabButtons.forEach((btn) => btn.classList.remove("active"));
+    event.target.classList.add("active");
+    currentTab = event.target.getAttribute("data-type");
+    renderPlayerList(currentTab, playerList);
+  }
+
+  tabButtons.forEach((button) => button.addEventListener("click", switchTab));
+  addBtn.addEventListener("click", () => addPlayer(currentTab, addInput.value, addInput, playerList));
+
+  renderPlayerList(currentTab, playerList);
+  setupPlayerFilter?.();
+}
+
+
+function setupPlayerFilter() {
+  const searchInput = document.getElementById("pm-search-input");
+  const playerList = document.getElementById("pm-list");
+
+  if (!searchInput || !playerList) return;
+
+  searchInput.addEventListener("input", () => {
+    const searchValue = searchInput.value.toLowerCase().trim();
+    const players = playerList.querySelectorAll(".pm-player-card");
+
+    players.forEach(card => {
+      const playerName = card.querySelector(".pm-player-name").textContent.toLowerCase();
+      card.style.display = playerName.includes(searchValue) ? "flex" : "none";
+    });
+  });
 }
 
 
 
 
-function monitorPlayers() {
-  console.log("Monitoring player list...");
-}
-function stopMonitoring() { console.log("[DEBUG] stopMonitoring() called"); }
-function stopBatteryMonitor() { console.log("[DEBUG] stopBatteryMonitor() called"); }
-function clearAllPlayerCards() { console.log("[DEBUG] clearAllPlayerCards() called"); }
+
 

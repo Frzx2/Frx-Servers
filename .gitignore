@@ -1,8 +1,8 @@
 
-frx servers -javascript version/Testing/
 Testing/
 *.log
 frx servers -javascript version/node_modules/
+frx servers -javascript version/dist/
 javascript_version/Frx\ Servers/
 .idea/
 .vscode/

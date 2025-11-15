@@ -209,7 +209,9 @@ ipcMain.handle("start-playit", async (event) => {
       return playitIP || "Fetching IP...";
     }
 
-    const playitPath = path.join(__dirname, "resources", "playit.exe");
+    const playitPath = app.isPackaged
+      ? path.join(process.resourcesPath, "playit.exe") // Production
+      : path.join(__dirname, "playit.exe");           // Dev
 
     playitProcess = spawn(playitPath, {
       cwd: path.dirname(playitPath),

@@ -67,21 +67,20 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 // ==================== Server Location Logic ====================
 browseBtn.addEventListener("click", async () => {
- try {
+  try {
     const folder = await ipcRenderer.invoke("pick-folder");
     if (!folder) return;
 
-    javaPathInput.value = folder;
-    config.java_path = folder;
+    serverLocationInput.value = folder;
+    config.server_location = folder;
 
     if (saveConfig()) {
-      console.log(`[INFO] Java path manually set to: ${folder}`);
-      await loadJavaList(); // Refresh detected list
+      console.log(`[INFO] Server location set to: ${folder}`);
     } else {
-      alert("❌ Failed to save Java path.");
+      alert("❌ Failed to save server location.");
     }
   } catch (err) {
-    console.error("[ERROR] Selecting Java path:", err);
+    console.error("[ERROR] Selecting server location:", err);
   }
 });
 

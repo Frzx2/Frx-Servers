@@ -1,19 +1,56 @@
 {
-  "name": "electron",
+  "name": "frx-servers",
   "version": "1.0.0",
-  "description": "",
+  "description": "Minecraft Server Manager - Frx Servers",
   "main": "main.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Frx",
+  "license": "BSD-2-Clause",
   "type": "commonjs",
-  "devDependencies": {
-    "electron": "^39.0.0"
+
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
   },
+
+  "build": {
+  "productName": "Frx Servers",
+  "appId": "com.frx.servermanager",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "**/*",
+    "!**/dist/**",
+    "!**/Testing/**",
+    "!**/server/**",
+    "!**/servers/**",
+    "!**/*.zip",
+    "!**/*.rar",
+    "!**/*.exe",
+    "!**/*.jar",
+    "!**/world/**",
+    "!**/logs/**",
+    "!**/.git/**",
+    "!**/.cache/**"
+  ],
+  "win": {
+    "target": [
+      "nsis",
+      "portable"
+    ]
+  },
+  "extraResources": [
+    { "from": "playit.exe", "to": "playit.exe" },
+    { "from": "ui", "to": "ui" },
+    { "from": "Icon", "to": "Icon" }
+  ]
+},
+
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  },
+
   "dependencies": {
     "adm-zip": "^0.5.16",
     "chart.js": "^4.5.1",

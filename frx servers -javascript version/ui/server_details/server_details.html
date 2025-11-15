@@ -52,7 +52,7 @@
         <div class="menu-bar">
           <button class="menu-btn active" data-section="status">Status</button>
           <button class="menu-btn" data-section="console">Console</button>
-          <button class="menu-btn" data-section="players">Players</button>
+          <button class="menu-btn" data-section="player-management">Players</button>
           <button class="menu-btn" data-section="properties">Properties</button>
           <div class="tooltip-wrapper" title="When server is online you can't go into Home Menu">
             <button id="home_menu" data-section="home_menu">Home</button>
@@ -63,7 +63,7 @@
         <!-- === SECTION CONTENTS === -->
         <div class="menu-content">
           
-          <!--  EFFECTS -->
+          <!-- STATUS -->
           <div id="status" class="section active">
             <div class="stats-card">
               <div class="stat-card">
@@ -97,7 +97,7 @@
               </div>
             </div>
 
-            <!-- USAGE GRAPH (keep inside the same "status" section) -->
+            <!-- USAGE GRAPH -->
             <div class="card graph-card">
               <div class="graph-controls">
                 <button class="graph-btn active" data-range="5">5m</button>
@@ -109,7 +109,7 @@
             </div>
           </div>
 
-          <!-- 💬 CONSOLE -->
+          <!-- CONSOLE -->
           <div id="console" class="section">
             <div class="card console-card">
               <h3>Command Console</h3>
@@ -122,31 +122,177 @@
             </div>
           </div>
 
-          <!-- 👥 PLAYERS -->
-          <div id="players" class="section">
-            <div class="card player-card">
-              <h3>Player Management</h3>
-              <div class="player-controls">
-                <input type="text" id="player-search" placeholder="Search player..." />
-                <button class="toggle-btn active" data-target="ops">Ops</button>
-                <button class="toggle-btn" data-target="whitelist">Whitelist</button>
-                <button class="toggle-btn" data-target="banned">Banned</button>
+          <!-- PLAYER MANAGEMENT(pm) -->
+          <div id="player-management" class="section">
+            <div class="pm-card">
+              <div class="pm-header">
+                <h3>Player Management</h3>
               </div>
-              <div id="player-menu-side" class="player-menu-side"></div>
+
+              <div class="player-tabs">
+                <button class="tab-btn active" data-type="ops">Ops</button>
+                <button class="tab-btn" data-type="whitelist">Whitelist</button>
+                <button class="tab-btn" data-type="banned">Banned</button>
+              </div>
+
+              <div class="player-controls">
+                <input
+                  type="text"
+                  id="pm-search-input"
+                  placeholder="Search players..."
+                  class="pm-search"
+                />
+                <div class="add-player-box">
+                  <input
+                    type="text"
+                    id="pm-add-player-input"
+                    placeholder="Add player..."
+                    class="pm-add-player-input"
+                  />
+                  <button id="pm-add-btn" class="pm-add-btn">＋</button>
+                </div>
+              </div>
+
+              <div id="pm-list" class="pm-list">
+                <!-- Players loaded via JS -->
+              </div>
             </div>
           </div>
+
+
+          <!--  PROPERTIES (Updated 2× Grid Version) -->
+          <div id="properties" class="section">
+            <div class="properties-header">
+              <h3>Server Properties</h3>
+              <button id="save-properties-btn" class="btn save">💾 Save Properties</button>
+            </div>
+
+            <div class="properties-grid">
+              
+              <!-- Survival Settings -->
+              <div class="property-card glass-card">
+                <h4>Survival Settings</h4>
+                <div class="property-item"><label for="difficulty">Difficulty</label>
+                  <select id="difficulty">
+                    <option value="peaceful">Peaceful</option>
+                    <option value="easy" selected>Easy</option>
+                    <option value="normal">Normal</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="gamemode">Gamemode</label>
+                  <select id="gamemode">
+                    <option value="survival" selected>Survival</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="spectator">Spectator</option>
+                    <option value="creative">Creative</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="allow-flight">Allow Flight</label>
+                  <select id="allow-flight">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="hardcore">Hardcore</label>
+                  <select id="hardcore">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Gameplay -->
+              <div class="property-card glass-card">
+                <h4>Gameplay</h4>
+                <div class="property-item"><label for="enforce-whitelist">Enforce Whitelist</label>
+                  <select id="enforce-whitelist">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="force-gamemode">Force Gamemode</label>
+                  <select id="force-gamemode">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="hide-online-players">Hide Online Players</label>
+                  <select id="hide-online-players">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="level-type">Level Type</label>
+                  <select id="level-type">
+                    <option value="minecraft:normal" selected>Normal</option>
+                    <option value="flat">Flat</option>
+                    <option value="largeBiomes">Large Biomes</option>
+                    <option value="amplified">Amplified</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Server Settings -->
+              <div class="property-card glass-card">
+                <h4>Server Settings</h4>
+                <div class="property-item"><label for="max-players">Max Players</label>
+                  <input id="max-players" type="number" min="1" max="100" value="20" />
+                </div>
+                <div class="property-item"><label for="max-tick-time">Max Tick Time (ms)</label>
+                  <input id="max-tick-time" type="number" value="60000" />
+                </div>
+                <div class="property-item"><label for="max-world-size">Max World Size</label>
+                  <input id="max-world-size" type="number" value="29999984" />
+                </div>
+                <div class="property-item"><label for="online-mode">Online Mode</label>
+                  <select id="online-mode">
+                    <option value="true" selected>True</option>
+                    <option value="false">False</option>
+                  </select>
+                </div>
+                <div class="property-item"><label for="op-permission-level">OP Permission Level</label>
+                  <input id="op-permission-level" type="number" min="1" max="4" value="4" />
+                </div>
+                <div class="property-item"><label for="pause-when-empty-seconds">Pause When Empty (s)</label>
+                  <input id="pause-when-empty-seconds" type="number" value="60" />
+                </div>
+                <div class="property-item"><label for="player-idle-timeout">Player Idle Timeout (s)</label>
+                  <input id="player-idle-timeout" type="number" value="0" />
+                </div>
+                <div class="property-item"><label for="spawn-protection">Spawn Protection</label>
+                  <input id="spawn-protection" type="number" value="16" />
+                </div>
+                <div class="property-item"><label for="white-list">Whitelist</label>
+                  <select id="white-list">
+                    <option value="false" selected>False</option>
+                    <option value="true">True</option>
+                  </select>
+                </div>
+              </div>
+
+            </div>
+          </div> 
         </div>
       </div>
 
-      <!-- === RIGHT: PLAYERS CARD + MINI CONSOLE === -->
+      <!-- RIGHT PANEL: PLAYERS CARD + MINI CONSOLE -->
       <div class="right-panel">
         <div class="players-card glass-card tall-card">
           <h3 id="player-count">Players: 0/0</h3>
+
+          <!-- 🔍 Search box -->
+          <input 
+            type="text" 
+            id="player-search" 
+            placeholder="Search player..."
+            class="player-search"
+            oninput="filterPlayers()" 
+          />
+
           <div id="player-list" class="player-list"></div>
         </div>
       </div>
-    </div>
-  </div>
 
   <script src="server_details.js"></script>
 </body>

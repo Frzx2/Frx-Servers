@@ -1,55 +1,49 @@
-Frx Servers
+# Frx Servers
 
-Frx Servers is an open-source Minecraft server manager designed to simplify local hosting.
-It provides a modern and friendly interface that handles server setup, configuration, and monitoring, while allowing you to bring your own customization and improvements.
+> A clean UI that makes hosting Minecraft servers locally simple
 
-This project uses the Playit.gg tunneling service for making your locally hosted Minecraft server available online without port forwarding.
+Frx Servers is an open-source Minecraft server manager designed to simplify local hosting.  
+It provides a modern and friendly interface that handles installation, configuration, and monitoring — and allows full customization.
 
-Features
+This project uses Playit.gg tunneling to make your Minecraft server joinable online without port forwarding.
 
-Host Minecraft servers locally with Playit.gg
+---
 
-Supports major server types:
+### Features
 
-Vanilla
+- Host Minecraft servers using Playit.gg
+- Supports:
+  - Vanilla
+  - Paper
+  - Forge
+  - Fabric
+- Automatic server installation and setup
+- Auto-detection of Java and download guidance
+- Live console with command input
+- Real-time CPU, RAM, and server status monitoring
+- User-friendly editor for server.properties
+- Fully open-source — modify and build your own version
 
-Paper
+---
 
-Forge
+### Requirements
 
-Fabric
+- Windows 10 or Windows 11
+- Java 17+ recommended  
+  (If Java is missing, the app will help you install it)
+- Playit.gg Agent set up before launching  
+  Download: https://playit.gg/
 
-Automatic server installation and setup
+---
 
-Auto-detection of Java and guidance if missing
+### Contributing
 
-Live console with command input
+This project is open to learn, modify, and improve.  
+Pull requests and issue reports are welcome.
 
-Real-time CPU, RAM, and server status monitoring
+---
 
-Edit server.properties in a user-friendly interface
+### License
 
-Installation directory selection and clean UI
-
-Fully customizable and open-source
-
-Requirements
-
-Windows 10 or Windows 11
-
-Playit.gg Agent installed and configured
-https://playit.gg/
-
-Java installation is recommended (Java 8 or newer), and the app will help guide you if not installed.
-
-Contributing and Customization
-
-This project is open for everyone to learn, modify, and build their own version.
-You are encouraged to improve features and adapt the tool to your needs.
-
-Pull requests and forks are welcome.
-
-License
-
-Frx Servers © 2025 Frzx2
+Frx Servers © 2025 Frzx2  
 Licensed under the BSD 2-Clause License

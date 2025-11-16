@@ -1,8 +1,4 @@
 const { ipcRenderer } = require('electron');
-const fs = require('fs');
-const path = require('path');
-
-const CONFIG_PATH = path.join(__dirname, '../../config.json');
 
 // UI Elements
 const startBtn = document.getElementById('start-btn');
@@ -28,16 +24,20 @@ browseBtn.addEventListener('click', async () => {
 });
 
 // Confirm setup
-confirmBtn.addEventListener('click', () => {
+confirmBtn.addEventListener('click', async () => {
   const folder = folderPathInput.value.trim();
   if (!folder) {
     statusMsg.textContent = '⚠️ Please select a valid folder.';
     return;
   }
 
-  // Save config
+  // Save config via main process
   const config = { setup: true, server_location: folder };
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  await ipcRenderer.invoke('save-config', config);
+
+  statusMsg.textContent = '✅ Setup complete!';
+
+  
 
   statusMsg.textContent = '✅ Setup complete!';
   

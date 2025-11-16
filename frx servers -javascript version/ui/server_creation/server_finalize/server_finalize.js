@@ -297,9 +297,16 @@ async function runSetupFlow() {
     }
 
     // Setup destination
-    const configFile = path.join(process.cwd(), 'config.json');
+    const configFile = await ipcRenderer.invoke('get-config-path')
+
     let config = {};
-    try { config = JSON.parse(await fsp.readFile(configFile, 'utf8')); } catch (e) { config = {}; }
+    try {
+        const raw = await fsp.readFile(configFile, 'utf8');
+        config = JSON.parse(raw || '{}');
+    } catch (e) {
+        config = {};
+    }
+
     const base = config.server_location || process.cwd();
     const serverFolder = path.join(base, data.server_name);
     await fsp.mkdir(serverFolder, { recursive: true });

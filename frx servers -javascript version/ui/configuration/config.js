@@ -1,6 +1,6 @@
 // ==================== Imports ====================
 const { ipcRenderer } = require("electron");
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
 
 // ==================== DOM Elements ====================
@@ -17,42 +17,48 @@ const modal = document.getElementById("licenseModal");
 const link = document.getElementById("licenseLink");
 const closeBtn = document.querySelector(".close");
 
-// ==================== Paths & Config ====================
-const configPath = path.join(__dirname, "../../config.json");
+
+let configPath = null;
 let config = {};
 
 // ==================== Utility Functions ====================
 
-// Save configuration file
-function saveConfig() {
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-    console.log("[INFO] Configuration saved:", config);
-    return true;
-  } catch (err) {
-    console.error("[ERROR] Saving configuration failed:", err);
-    return false;
-  }
+// Initialize config path
+async function initConfigPath() {
+  configPath = await ipcRenderer.invoke('get-config-path');
+  console.log(`configpath: ${configPath}}`)
 }
 
 // Load configuration file
-function loadConfig() {
+async function loadConfig() {
+  if (!configPath) await initConfigPath();
+
   try {
-    if (fs.existsSync(configPath)) {
-      const raw = fs.readFileSync(configPath, "utf-8") || "{}";
-      config = JSON.parse(raw);
-    } else {
-      config = {};
-    }
+    const raw = await fs.readFile(configPath, 'utf8');
+    config = JSON.parse(raw || '{}');
   } catch (err) {
-    console.error("[ERROR] Loading configuration failed:", err);
+    console.warn('[WARN] Failed to load config.json, using empty config:', err);
     config = {};
   }
+
+  return config;
 }
 
+async function saveConfig() {
+  if (!configPath) await initConfigPath();
+
+  try {
+    await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf8');
+    console.log('[INFO] Configuration saved:', config);
+    return true;
+  } catch (err) {
+    console.error('[ERROR] Saving configuration failed:', err);
+    return false;
+  }
+}
 // ==================== Initialization ====================
 window.addEventListener("DOMContentLoaded", async () => {
-  loadConfig();
+  await loadConfig();
 
   if (config.server_location) {
     serverLocationInput.value = config.server_location;
@@ -74,7 +80,7 @@ browseBtn.addEventListener("click", async () => {
     serverLocationInput.value = folder;
     config.server_location = folder;
 
-    if (saveConfig()) {
+    if (await saveConfig()) {
       console.log(`[INFO] Server location set to: ${folder}`);
     } else {
       alert("❌ Failed to save server location.");
@@ -93,7 +99,7 @@ javaBrowseBtn.addEventListener("click", async () => {
     javaPathInput.value = folder;
     config.java_path = folder;
 
-    if (saveConfig()) {
+    if (await saveConfig()) {
       console.log(`[INFO] Java path manually set to: ${folder}`);
       await loadJavaList(); // Refresh detected list
     } else {
@@ -139,11 +145,11 @@ async function loadJavaList() {
         li.style.color = "#fff";
       }
 
-      li.onclick = () => {
+      li.onclick = async  () => {
         javaPathInput.value = javaPath;
         config.java_path = javaPath;
 
-        if (saveConfig()) {
+        if (await saveConfig()) {
           console.log(`[INFO] Java path set to: ${javaPath}`);
           // Highlight selection
           document.querySelectorAll(".java-path-item").forEach((el) => {
@@ -171,8 +177,8 @@ async function loadJavaList() {
 }
 
 // ==================== Navigation ====================
-backBtn.addEventListener("click", () => {
-  saveConfig();
+backBtn.addEventListener("click", async  () => {
+  await saveConfig();
   window.location.href = "../home_screen/home_screen.html";
 });
 

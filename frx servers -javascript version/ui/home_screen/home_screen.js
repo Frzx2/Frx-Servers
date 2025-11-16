@@ -1,12 +1,39 @@
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
+const { ipcRenderer } = require("electron");
 
-const CONFIG_PATH = path.join(__dirname, "../../config.json");
+let CONFIG_PATH = null;
 const serverListDiv = document.getElementById("server-list");
 const refreshBtn = document.getElementById("refresh-btn");
 const configBtn = document.getElementById("config-btn");
 const createBtn = document.getElementById("create-btn");
+
+
+// Fetch config path from main process
+async function initConfigPath() {
+  CONFIG_PATH = await ipcRenderer.invoke("get-config-path");
+  console.log("Config path:", CONFIG_PATH);
+}
+
+// Main setup function
+async function main() {
+  await initConfigPath();
+
+  loadServers();
+
+  refreshBtn.addEventListener("click", loadServers);
+  configBtn.addEventListener(
+    "click",
+    () => (window.location.href = "../configuration/config.html")
+  );
+  createBtn.addEventListener(
+    "click",
+    () => (window.location.href = "../server_creation/server_type/server_type.html")
+  );
+}
+
+main();
 
 let serversData = {}; // Cache to track servers and last update times
 let deleteMode = false;

@@ -13,38 +13,46 @@
   },
 
   "build": {
-  "productName": "Frx Servers",
-  "appId": "com.frx.servermanager",
-  "directories": {
-    "output": "dist"
-  },
-  "files": [
-    "**/*",
-    "!**/dist/**",
-    "!**/Testing/**",
-    "!**/server/**",
-    "!**/servers/**",
-    "!**/*.zip",
-    "!**/*.rar",
-    "!**/*.exe",
-    "!**/*.jar",
-    "!**/world/**",
-    "!**/logs/**",
-    "!**/.git/**",
-    "!**/.cache/**"
-  ],
-  "win": {
-    "target": [
-      "nsis",
-      "portable"
+    "productName": "Frx Servers",
+    "appId": "com.frx.servermanager",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/dist/**",
+      "!**/Testing/**",
+      "!**/server/**",
+      "!**/servers/**",
+      "!**/*.zip",
+      "!**/*.rar",
+      "!**/*.exe",
+      "!**/*.jar",
+      "!**/world/**",
+      "!**/logs/**",
+      "!**/.git/**",
+      "!**/.cache/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Frx Servers"
+    },
+    "extraResources": [
+      { "from": "config.json", "to": "config.json" },
+      { "from": "playit.exe", "to": "playit.exe" },
+      { "from": "ui", "to": "ui" },
+      { "from": "Icon", "to": "Icon" }
     ]
   },
-  "extraResources": [
-    { "from": "playit.exe", "to": "playit.exe" },
-    { "from": "ui", "to": "ui" },
-    { "from": "Icon", "to": "Icon" }
-  ]
-},
 
   "devDependencies": {
     "electron": "^39.0.0",

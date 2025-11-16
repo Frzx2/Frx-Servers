@@ -6,7 +6,9 @@ const { existsSync, readdirSync, statSync } = require('fs');
 const { spawn } = require("child_process");
 
 // === CONFIG FILE PATH ===
-const CONFIG_PATH = path.join(__dirname, 'config.json');
+const CONFIG_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'config.json')  // Production
+  : path.join(__dirname, 'config.json');    
 
 // === CONFIG HELPERS ===
 function loadConfig() {
@@ -16,7 +18,7 @@ function loadConfig() {
       return JSON.parse(raw || '{}');
     }
   } catch (err) {
-    alert('[ERROR] Failed to read config.json:' + err);
+    console.error('[ERROR] Failed to read config.json:' + err);
   }
   return {};
 }
@@ -25,7 +27,7 @@ function saveConfig(config) {
   try {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
   } catch (err) {
-    alert('[ERROR] Failed to write config.json:' + err);
+    console.error('[ERROR] Failed to write config.json:' + err);
   }
 }
 
@@ -41,12 +43,11 @@ function createWindow() {
     icon: path.join(__dirname, 'Icon', 'logo.png'),
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'src', 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: false, // can be re-enabled for security later
+      contextIsolation: false,
     },
   });
-
+  console.log(config)
   // Load correct starting page
   const startPage = config.setup
     ? path.join(__dirname, 'ui', 'home_screen', 'home_screen.html')
@@ -197,7 +198,16 @@ ipcMain.on("open-server-details", (event, serverPath) => {
     detailsWin.webContents.send("init-server-details", serverPath);
   });
 });
+// 6. Open Config.json
+ipcMain.handle('load-config', () => {
+  return loadConfig(); // uses your existing loadConfig()
+});
 
+ // 7. Give config path
+  ipcMain.handle("get-config-path", () => {
+  return CONFIG_PATH;
+});
+  
 //  Playit Process Handler
 let playitProcess = null;
 let playitIP = null;

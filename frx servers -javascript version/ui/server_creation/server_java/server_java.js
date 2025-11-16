@@ -454,11 +454,11 @@ browseBtn.onclick = async () => {
   }
 };
 //Load existing selection
-function loadExistingSelection() {
+async function loadExistingSelection() {
   try {
     const fs = require("fs");
     const path = require("path");
-    const configPath = path.join(__dirname, "../../../config.json");
+    const configPath = await ipcRenderer.invoke('get-config-path')
 
     // Check if config file exists
     if (!fs.existsSync(configPath)) {
@@ -492,10 +492,10 @@ function loadExistingSelection() {
 }
 
 // --- Toast Popup Creator + Logic ---
-function showSavePopup(javaPath) {
+async function showSavePopup(javaPath) {
   const fs = require("fs");
   const path = require("path");
-  const configPath = path.join(__dirname, "../../../config.json");
+  const configPath = await ipcRenderer.invoke('get-config-path')
 
   let config = {};
   if (fs.existsSync(configPath)) {

@@ -61,7 +61,7 @@ function validateJavaPath(javaPath) {
   });
 }
 
-// --- Asynchronously get version (fast and parallel) ---
+// --- Asynchronously get version  ---
 function getJavaVersion(javaPath) {
   return new Promise((resolve) => {
     execFile(javaPath, ["-version"], { timeout: 2000 }, (error, stdout, stderr) => {
@@ -205,7 +205,7 @@ function hideProgressPopup() {
   }
 }
 
-// ✅ Download function with progress updates
+//  Download Java function 
 function downloadFile(url, dest, callback) {
   console.log("[INFO] Starting download from:", url);
   const file = fs.createWriteStream(dest);
@@ -252,7 +252,7 @@ function downloadFile(url, dest, callback) {
     });
 }
 
-// ✅ Fetch the latest Adoptium Java 21 ZIP
+//  Fetch the latest Adoptium Java 21 ZIP
 async function getLatestJavaZipUrl() {
   const apiUrl =
     "https://api.adoptium.net/v3/assets/latest/21/hotspot?os=windows&architecture=x64&image_type=jdk";
@@ -281,7 +281,7 @@ async function getLatestJavaZipUrl() {
   });
 }
 
-// ✅ Main Java install logic
+//  Main Java install 
 async function installJava() {
   const confirm = await showToast(
     "No Java found. Do you want to download a portable Java 21 (Adoptium ZIP)?",
@@ -362,7 +362,7 @@ function handleJavaSelection(javaPath, fullVersion = "Unknown", major = 0,showPo
 
   if (showPopup) showSavePopup(javaPath);
 }
-// msg Toast
+// Msg Toast
 function showToast(message, buttons = false) {
   return new Promise((resolve) => {
     // Remove existing toast if any

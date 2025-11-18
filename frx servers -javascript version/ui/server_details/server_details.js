@@ -267,6 +267,7 @@ let isServerRunning = false;
 let serverProcess = null;
 let usageInterval = null;
 
+//Starting Server 
 async function startServer() {
   toggleButtons("running");
   setServerState("starting");
@@ -445,7 +446,7 @@ try {
     setServerState("offline");
   }
 }
-
+// Stoping Server
 async function stopServer() {
   appendConsole("Stopping server...");
   if (!serverProcess || !isServerRunning) {
@@ -555,6 +556,7 @@ async function stopServer() {
   
 }
 
+// Ensuring Rcon is Set to True
 function ensureRconCredentials() {
   // Attempt to read RCON credentials from server_info.json
   try {
@@ -572,6 +574,7 @@ function ensureRconCredentials() {
   return { password: null, port: null };
 }
 
+//Restarting Server 
 async function restartServer() {
   appendConsole("Restarting server...");
   disableButtons();
@@ -599,7 +602,7 @@ async function restartServer() {
     
   }
 }
-
+//Killing Server
 async function killServer() {
   appendConsole("Forcing server termination...");
 
@@ -670,7 +673,9 @@ async function killServer() {
   }
 }
 
-// === Playit.gg Integration ===
+// === Playit.gg Opertaion ===
+
+// Fetching Ip from Playit
 async function fetchPlayitIP() {
   try {
     let ipStatus = await ipcRenderer.invoke("start-playit");
@@ -694,6 +699,7 @@ async function fetchPlayitIP() {
     return "Error fetching IP";
   }
 }
+//Stoping Playit
 async function stopPlayit() {
   try {
     const result = await ipcRenderer.invoke("stop-playit");
@@ -751,6 +757,7 @@ function appendConsole(msg, type = "info", clearLog = false) {
   }
 }
 
+// === Send Command to Server Through Console ===
 function SendConsoleCommand(command) {
   command = command.trim();
   if (!command) return;
@@ -800,7 +807,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-// === Server Properties ===
 
 // === Bind save button ===
 document.getElementById("save-properties-btn").addEventListener("click", saveServerProperties);
@@ -1473,7 +1479,7 @@ function banPlayer(playerName) {
 }
 // === PLAYER MANAGEMENT (Whitelist / Banned / Ops) ===
 
-// ==================== Player File Utilities ==================== //
+// Player File Utilities  //
 function getFilePath(type) {
   const fileMap = {
     ops: "ops.json",
@@ -1571,22 +1577,47 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
   const players = readJSON(filePath);
 
   if (!playerName.trim()) return;
-  if (players.some((p) => p.name === playerName))
-    return showToast("Player already exists", "error");
+  if (players.some(p => p.name === playerName)) {
+    showToast("Player already exists", "error");
+    return;
+  }
 
   let newEntry;
+  let whitelistChanged = false;
+
   if (type === "whitelist") {
     const uuid = await fetchUUID(playerName);
     newEntry = uuid
       ? { uuid, name: playerName }
       : { name: playerName };
-    if (!uuid)
-      appendConsole(`⚠️ Could not fetch UUID for "${playerName}" — added by name only.`, "warn");
-  } else if (type === "ops") {
-    newEntry = { uuid: "", name: playerName, level: 4, bypassesPlayerLimit: false };
-  } else if (type === "banned") {
+
+    whitelistChanged = true;
+
+    if (!uuid) {
+      appendConsole(`Could not fetch UUID for "${playerName}" — added by name only.`, "warn");
+    }
+  }
+
+  else if (type === "ops") {
+    const uuid = await fetchUUID(playerName);
+
+    if (!uuid) {
+      showToast("Cannot add OP without UUID", "error");
+      return;
+    }
+
     newEntry = {
-      uuid: "",
+      uuid,
+      name: playerName,
+      level: 4,
+      bypassesPlayerLimit: false
+    };
+  }
+
+  else if (type === "banned") {
+    const uuid = await fetchUUID(playerName);
+    newEntry = {
+      uuid: uuid || "",
       name: playerName,
       created: new Date().toISOString(),
       source: "Server",
@@ -1595,10 +1626,16 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
     };
   }
 
+  // Save the new record
   players.push(newEntry);
   writeJSON(filePath, players);
   inputEl.value = "";
   renderPlayerList(type, playerListEl);
+
+  // Ask to apply changes only for whitelist
+  if (whitelistChanged) {
+    askforapply();
+  }
 }
 
 function removePlayer(type, playerName, playerListEl) {
@@ -1607,6 +1644,26 @@ function removePlayer(type, playerName, playerListEl) {
   players = players.filter((p) => p.name !== playerName);
   writeJSON(filePath, players);
   renderPlayerList(type, playerListEl);
+}
+
+async function askforapply(){
+  const reply = await showToast("Do You Want to Apply Whitelist?","success",true)
+  if (!reply){
+    appendConsole("Whitelist will be applied once server restarts",)
+  }
+  else{
+    if (serverProcess && isServerRunning) {
+    try {
+      // === Send command to server's stdin ===
+      serverProcess.stdin.write("whitelist reload" + "\n");
+      appendConsole(`> whitelist reload`, "command");
+    } catch (err) {
+      appendConsole(`❌ Failed to send command: ${err}`, "error");
+    }
+  } else {
+    appendConsole("⚠️ Cannot send command — server is not running.", "error");
+  }
+  }
 }
 
 // ==================== Tab Setup ==================== //

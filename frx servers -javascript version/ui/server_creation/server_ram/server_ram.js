@@ -5,8 +5,6 @@ const errorLabel = document.getElementById("error-label");
 const nextBtn = document.getElementById("next-btn");
 const backBtn = document.getElementById("back-btn");
 const ramButtons = document.querySelectorAll(".ram-btn");
-
-// Use Node's OS module (Electron environment)
 const os = require("os");
 
 // Convert system memory to MB
@@ -17,6 +15,8 @@ const MIN_RAM = 2048;
 const MAX_RAM = totalSystemRAM;
 const WARN_THRESHOLD = Math.floor(MAX_RAM * 0.6); // 60%
 
+
+// Load Content
 window.addEventListener("DOMContentLoaded", () => {
   slider.max = MAX_RAM;
 

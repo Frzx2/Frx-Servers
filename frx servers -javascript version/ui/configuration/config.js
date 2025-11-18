@@ -83,7 +83,7 @@ browseBtn.addEventListener("click", async () => {
     if (await saveConfig()) {
       console.log(`[INFO] Server location set to: ${folder}`);
     } else {
-      alert("❌ Failed to save server location.");
+      alert(" Failed to save server location.");
     }
   } catch (err) {
     console.error("[ERROR] Selecting server location:", err);
@@ -93,7 +93,7 @@ browseBtn.addEventListener("click", async () => {
 // ==================== Java Path Logic ====================
 javaBrowseBtn.addEventListener("click", async () => {
   try {
-    const folder = await ipcRenderer.invoke("pick-folder");
+    const folder = await ipcRenderer.invoke("pick-java");
     if (!folder) return;
 
     javaPathInput.value = folder;
@@ -103,7 +103,7 @@ javaBrowseBtn.addEventListener("click", async () => {
       console.log(`[INFO] Java path manually set to: ${folder}`);
       await loadJavaList(); // Refresh detected list
     } else {
-      alert("❌ Failed to save Java path.");
+      alert(" Failed to save Java path.");
     }
   } catch (err) {
     console.error("[ERROR] Selecting Java path:", err);
@@ -115,7 +115,7 @@ async function loadJavaList() {
   javaList.innerHTML = "";
 
   const loadingLi = document.createElement("li");
-  loadingLi.textContent = "🔍 Searching for Java installations...";
+  loadingLi.textContent = " Searching for Java installations...";
   loadingLi.style.color = "#aaa";
   loadingLi.style.textAlign = "center";
   javaList.appendChild(loadingLi);
@@ -123,7 +123,7 @@ async function loadJavaList() {
   try {
     const javaPaths = await ipcRenderer.invoke("find-java-paths");
 
-    javaList.innerHTML = ""; // Clear loading message
+    javaList.innerHTML = ""; 
 
     if (!javaPaths || javaPaths.length === 0) {
       const li = document.createElement("li");

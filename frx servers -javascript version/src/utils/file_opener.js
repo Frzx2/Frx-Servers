@@ -37,3 +37,23 @@ async function openDialog({ type = 'folder', filters = [] } = {}) {
 }
 
 module.exports = { openDialog };
+
+//5. DUmmy
+ipcMain.on("open-server-details", (event, serverPath) => {
+  const detailsWin = new BrowserWindow({
+    width: 1280,
+    height: 720,
+    title: "Server Details",
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+  // Load the details page
+  detailsWin.loadFile(path.join(__dirname, "ui/server_details/server_details.html"));
+
+  // Once loaded, send serverPath to that window
+  detailsWin.webContents.on("did-finish-load", () => {
+    detailsWin.webContents.send("init-server-details", serverPath);
+  });
+});

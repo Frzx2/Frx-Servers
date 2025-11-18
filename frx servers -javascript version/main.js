@@ -8,7 +8,7 @@ const { spawn } = require("child_process");
 // === CONFIG FILE PATH ===
 const CONFIG_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'config.json')  // Production
-  : path.join(__dirname, 'config.json');    
+  : path.join(__dirname, 'config.json');  // Dev
 
 // === CONFIG HELPERS ===
 function loadConfig() {
@@ -31,7 +31,7 @@ function saveConfig(config) {
   }
 }
 
-// === CREATE MAIN WINDOW ===
+// === CREATE APP WINDOW ===
 function createWindow() {
   const config = loadConfig();
 
@@ -40,15 +40,14 @@ function createWindow() {
     height: 800,
     minWidth: 1000,
     minHeight: 700,
-    icon: path.join(__dirname, 'Icon', 'logo.png'),
+    icon: path.join(__dirname, 'Icon', 'logo2.png'),
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
   });
-  console.log(config)
-  // Load correct starting page
+  // Load starting page
   const startPage = config.setup
     ? path.join(__dirname, 'ui', 'home_screen', 'home_screen.html')
     : path.join(__dirname, 'ui', 'setup', 'setup.html');
@@ -56,8 +55,6 @@ function createWindow() {
   win.loadFile(startPage).catch((err) => {
     console.error('[ERROR] Failed to load HTML file:', err);
   });
-
-  // win.webContents.openDevTools(); // Uncomment for debugging
 }
 
 // === IPC HANDLERS ===
@@ -66,7 +63,7 @@ function createWindow() {
 ipcMain.handle("find-java-paths", async () => {
   const paths = new Set();
 
-  // --- 1. Check PATH (same as before)
+  // --- 1. Check Usual Path For Java
   try {
     if (process.platform === "win32") {
       const output = execSync("where java", { encoding: "utf8" });
@@ -179,31 +176,12 @@ ipcMain.handle('save-config', (event, newConfig) => {
   return updated;
 });
 
-// 5. Open Server Details Window
-ipcMain.on("open-server-details", (event, serverPath) => {
-  const detailsWin = new BrowserWindow({
-    width: 1280,
-    height: 720,
-    title: "Server Details",
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-  // Load the details page
-  detailsWin.loadFile(path.join(__dirname, "ui/server_details/server_details.html"));
-
-  // Once loaded, send serverPath to that window
-  detailsWin.webContents.on("did-finish-load", () => {
-    detailsWin.webContents.send("init-server-details", serverPath);
-  });
-});
-// 6. Open Config.json
+// 5. Open Config.json
 ipcMain.handle('load-config', () => {
   return loadConfig(); // uses your existing loadConfig()
 });
 
- // 7. Give config path
+ // 6. Give config path
   ipcMain.handle("get-config-path", () => {
   return CONFIG_PATH;
 });
@@ -212,6 +190,7 @@ ipcMain.handle('load-config', () => {
 let playitProcess = null;
 let playitIP = null;
 
+ // 7. Start Playit
 ipcMain.handle("start-playit", async (event) => {
   try {
     // Prevent multiple playit.exe instances
@@ -231,7 +210,6 @@ ipcMain.handle("start-playit", async (event) => {
     // Decode stdout in UTF-8
     playitProcess.stdout.setEncoding("utf8");
 
-    // === 🔹 Print *all* lines exactly like Python does ===
     playitProcess.stdout.on("data", (data) => {
       const lines = data.toString().split(/\r?\n/);
 
@@ -270,7 +248,7 @@ ipcMain.handle("start-playit", async (event) => {
     return "Error starting playit.exe";
   }
 });
-
+ // 8. Stop Playit
 ipcMain.handle("stop-playit", async (event) => {
   try {
     if (playitProcess) {

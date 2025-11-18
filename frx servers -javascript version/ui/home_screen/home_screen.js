@@ -13,7 +13,6 @@ const createBtn = document.getElementById("create-btn");
 // Fetch config path from main process
 async function initConfigPath() {
   CONFIG_PATH = await ipcRenderer.invoke("get-config-path");
-  console.log("Config path:", CONFIG_PATH);
 }
 
 // Main setup function
@@ -46,21 +45,6 @@ function isMinecraftServer(dirPath) {
   );
 }
 
-// Start the Minecraft server
-function startServer(serverPath) {
-  const jarPath = path.join(serverPath, "server.jar");
-  if (!fs.existsSync(jarPath)) {
-    alert("No server.jar found in this server directory.");
-    return;
-  }
-
-  const command = `cd "${serverPath}" && java -jar server.jar nogui`;
-  const process = exec(command);
-
-  alert(`Starting server at ${serverPath}...`);
-  process.stdout.on("data", data => console.log(data.toString()));
-  process.stderr.on("data", data => console.error(data.toString()));
-}
 
 // Load servers initially
 function loadServers() {
@@ -168,45 +152,9 @@ function loadServers() {
 // Render icons
   feather.replace();
   }
-
-  // Start live updater
-  startAutoUpdate();
 }
 
-// === Live Auto-Updater ===
-function startAutoUpdate() {
-  setInterval(() => {
-    Object.keys(serversData).forEach(serverPath => {
-      const infoPath = path.join(serverPath, "server_info.json");
-      if (!fs.existsSync(infoPath)) return;
-
-      try {
-        const newInfo = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
-        const oldInfo = serversData[serverPath];
-        const card = serverListDiv.querySelector(
-          `.server-card[data-path="${serverPath.replace(/\\/g, "\\\\")}"]`
-        );
-
-        if (!card || !newInfo) return;
-
-        // Update displayed info (no TPS, now uses server_type)
-        card.querySelector("h3").textContent = newInfo.name || oldInfo.name;
-        card.querySelector("p strong").textContent =
-          newInfo.server_status || oldInfo.server_status;
-
-        const ps = card.querySelectorAll(".server-info p");
-        ps[1].textContent = `Players: ${newInfo.players || "0/0"}`;
-        ps[2].textContent = `IP: ${newInfo.ip || "No IP found"}`;
-        ps[3].textContent = `${newInfo.server_type || "Unknown"}`;
-
-        // Save updated info to cache
-        serversData[serverPath] = { ...oldInfo, ...newInfo };
-      } catch (err) {
-        console.error(`Error reading updated info for ${serverPath}:`, err);
-      }
-    });
-  }, 2000); // every 2 seconds
-}
+// Go Into Server Menu
 function openServerDetails(serverPath) {
   try {
     // Save selected server path so next page can load it
@@ -319,7 +267,10 @@ function openEditPopup(serverPath, currentName) {
   }
 
   popup.remove();
-};}
+};
+}
+
+
 // Delete Server
 function DeleteServer(serverPath) {
   // Remove any old popup
@@ -371,9 +322,7 @@ function DeleteServer(serverPath) {
 }
 
 
-
-
-//Scearch Box
+// Scearch Server Box
 document.addEventListener("DOMContentLoaded", () => {
   const searchBox = document.getElementById("search-box");
 
@@ -405,5 +354,4 @@ createBtn.addEventListener(
   "click",
   () => (window.location.href = "../server_creation/server_type/server_type.html")
 );
-// Initial load
-loadServers();
+

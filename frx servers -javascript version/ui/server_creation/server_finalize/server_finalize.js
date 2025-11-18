@@ -44,6 +44,7 @@ function appendLog(text) {
   logEl.scrollTop = logEl.scrollHeight;
   console.log(text);
 }
+
 function setProgress(percent, text) {
   progressFill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   progressText.textContent = text || `${Math.round(percent)}%`;
@@ -92,7 +93,7 @@ function displaySummary() {
   summaryMsg.textContent = "Confirm details and Accept the EULA to start. Logs will appear on the right.";
 }
 
-// --- Download helper (fixed with live progress + smooth UI update) ---
+// --- Download helper ---
 async function downloadToFile(url, destPath, onProgress) {
   // ensure parent folder exists
   await fsp.mkdir(path.dirname(destPath), { recursive: true });

@@ -250,15 +250,54 @@ function disableButtons() {
 function enableButtons() {
   [startBtn, stopBtn, restartBtn, killBtn].forEach(b => b.disabled = false);
 }
-
+// Set Server Controls Buttons
 function toggleButtons(state) {
+  const starting = state === "starting";
+  const stopping = state === "stopping";
   const running = state === "running";
-  startBtn.classList.toggle("hidden", running);
-  stopBtn.classList.toggle("hidden", !running);
-  restartBtn.classList.toggle("hidden", !running);
-  killBtn.classList.toggle("hidden", !running);
-  enableButtons();
+  const stopped = state === "stopped";
+
+  // Disable actions during transition
+  const disableAll = starting || stopping;
+
+  startBtn.disabled = disableAll;
+  stopBtn.disabled = disableAll;
+  restartBtn.disabled = disableAll;
+  killBtn.disabled = disableAll;
+
+  // Starting: hide everything
+  if (starting) {
+    startBtn.classList.add("hidden");
+    stopBtn.classList.add("hidden");
+    restartBtn.classList.add("hidden");
+    killBtn.classList.add("hidden");
+  }
+
+  // Running
+  if (running) {
+    startBtn.classList.add("hidden");
+    stopBtn.classList.remove("hidden");
+    restartBtn.classList.remove("hidden");
+    killBtn.classList.remove("hidden");
+  }
+
+  // Stopping: hide everything
+  if (stopping) {
+    startBtn.classList.add("hidden");
+    stopBtn.classList.add("hidden");
+    restartBtn.classList.add("hidden");
+    killBtn.classList.add("hidden");
+  }
+
+  // Stopped
+  if (stopped) {
+    startBtn.classList.remove("hidden");
+    stopBtn.classList.add("hidden");
+    restartBtn.classList.add("hidden");
+    killBtn.classList.add("hidden");
+  }
 }
+
 
 
 // === Server Fucntions ===
@@ -269,7 +308,7 @@ let usageInterval = null;
 
 //Starting Server 
 async function startServer() {
-  toggleButtons("running");
+  toggleButtons("starting");
   setServerState("starting");
   startUptime();
   startGraph();
@@ -306,7 +345,7 @@ async function startServer() {
   // === Check for server.jar ===
   if (!fs.existsSync(jarPath)) {
     appendConsole(`❌ server.jar not found in: ${jarPath}`, "error");
-    toggleButtons("hidden");
+    toggleButtons("stopped");
     setServerState("offline");
     stopPlayerMonitor();
     return;
@@ -314,7 +353,7 @@ async function startServer() {
   // === Verify and enforce RCON configuration ===
   if (!fs.existsSync(propertiesPath)) {
     appendConsole("⚠️ server.properties not found — cannot verify RCON.", "error");
-    toggleButtons("hidden");
+    toggleButtons("stopped");
     toggleServerStatus(false);
     stopPlayerMonitor();
     setServerState("offline");
@@ -361,7 +400,7 @@ try {
       !/rcon\.password\s*=\s*123/i.test(verify) ||
       !/rcon\.port\s*=\s*\d+/i.test(verify)) {
     appendConsole("❌ RCON verification failed after save — cannot continue.", "error");
-    toggleButtons("hidden");
+    toggleButtons("stopped");
     setServerState("offline");
     stopPlayerMonitor();
     return;
@@ -370,7 +409,7 @@ try {
 
 } catch (err) {
   appendConsole(`❌ Failed to verify or update RCON: ${err}`, "error");
-  toggleButtons("hidden");
+  toggleButtons("stopped");
   setServerState("offline");
   stopPlayerMonitor();
   return;
@@ -419,6 +458,7 @@ try {
         isServerRunning = true;
         showToast("Server Started!", "success");
         startPlayerMonitor(serverProcess);
+        toggleButtons("running")
       }
     });
 
@@ -429,7 +469,7 @@ try {
     serverProcess.on("exit", (code) => {
       appendConsole(`🛑 Server exited with code ${code}`, "error");
       showToast("Server Stopped", "error");
-      toggleButtons("hidden");
+      toggleButtons("stopped");
       setServerState("offline");
       stopPlayit();
     });
@@ -440,7 +480,7 @@ try {
   } catch (err) {
     appendConsole(`❌ Failed to start server process: ${err}`, "error");
     showToast("Server Stoped!","error");
-    toggleButtons("hidden");
+    toggleButtons("stopped");
     stopPlayit();
     stopPlayerMonitor();
     setServerState("offline");
@@ -451,13 +491,13 @@ async function stopServer() {
   appendConsole("Stopping server...");
   if (!serverProcess || !isServerRunning) {
     appendConsole("No running server process found.");
-    toggleButtons("hidden");
+    toggleButtons("stopping");
     stopPlayerMonitor();
     setServerState("offline");
     return;
   }
 
-  toggleButtons("hidden");
+  toggleButtons("stopping");
   setServerState("stopping");
   stopGraph();
   stopUptime();
@@ -553,7 +593,7 @@ async function stopServer() {
   appendConsole("Server fully stopped.");
   stopPlayerMonitor();
   setServerState("offline");
-  
+  toggleButtons("stopped")
 }
 
 // Ensuring Rcon is Set to True
@@ -608,14 +648,14 @@ async function killServer() {
 
   if (!serverProcess) {
     appendConsole("No active server process found.");
-    toggleButtons("hidden");
+    toggleButtons("stopped");
     setServerState("offline");
     return;
   }
 
   try {
     setServerState("stopping");
-    toggleButtons("hidden");
+    toggleButtons("stopping");
 
     // --- Kill process forcefully ---
     if (process.platform === "win32") {
@@ -689,8 +729,18 @@ async function fetchPlayitIP() {
           clearInterval(interval);
           document.getElementById("server-ip").innerText = status;
           console.log("✅ Playit IP fetched:", status);
+          try {
+              const baseDir = localStorage.getItem("selectedServerPath");
+              const infoPath = path.join(baseDir, "server_info.json");
+              if (fs.existsSync(infoPath)) {
+                const data = JSON.parse(fs.readFileSync(infoPath, "utf8"));
+                data.server_ip = status
+                fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf8");
+              }
+            } catch (err) {
+              appendConsole(`Error updating server_info.json: ${err.message}`)}
         }
-      }, 3000); // check every 3 seconds
+      }, 2000); // check every 2 seconds
     }
 
     return ipStatus;
@@ -708,7 +758,6 @@ async function stopPlayit() {
     console.error("❌ Failed to stop Playit:", err);
   }
 }
-
 
 // === Append console messages ===
 function appendConsole(msg, type = "info", clearLog = false) {
@@ -1020,6 +1069,18 @@ async function showToast(msg, type = "success", ask = false) {
   });
 }
 
+// === Play Sound === //
+function playSound(type) {
+  let file = "../sound/success.mp3"; // default
+
+  if (type === "error") {
+    file = "../sound/error.mp3";
+  }
+
+  const audio = new Audio(file);
+  audio.currentTime = 0;
+  audio.play().catch(err => console.error("Audio play failed:", err));
+}
 
 // === Navigation Menu ===
 document.querySelectorAll(".menu-btn").forEach(btn => {

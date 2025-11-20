@@ -129,12 +129,38 @@ function loadServers() {
       <h3 class="server-name">${info.server_name || name}</h3>
       <p><strong>${info.server_status || "Offline"}</strong></p>
       <p>Players: ${info.players}</p>
-      <p>IP: ${info.ip}</p>
+      <div class="ip-row">
+        <p class="server-ip">IP: ${info.server_ip}</p>
+        <button class="copy-ip-btn" title="Copy IP">
+          <i data-feather="copy"></i>
+        </button>
+      </div>
       <p>${info.server_type || "Unknown"}</p>
     </div>
   </div>
 `;
 
+    // Copy IP Button Handler (INSIDE the for loop!!)
+    const copyIpBtn = card.querySelector(".copy-ip-btn");
+    const ipElem = card.querySelector(".server-ip");
+
+    copyIpBtn.addEventListener("click", async (e) => {
+      e.stopPropagation(); // Prevent entering server details
+
+      const ip = ipElem.textContent.replace("IP: ", "").trim();
+
+      try {
+        await navigator.clipboard.writeText(ip);
+        copyIpBtn.innerHTML = '<i data-feather="check"></i>';
+        feather.replace();
+        setTimeout(() => {
+          copyIpBtn.innerHTML = '<i data-feather="copy"></i>';
+          feather.replace();
+        }, 1500);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+});
 
     // Edit, Start, Details,Delete button handlers
     
@@ -342,6 +368,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 });
+
 
 
 // === Navigation ===

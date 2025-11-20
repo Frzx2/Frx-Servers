@@ -46,4 +46,4 @@ Pull requests and issue reports are welcome.
 ### License
 
 Frx Servers © 2025 Frzx2  
-Licensed under the BSD 2-Clause License
+Licensed under the BSD 3-Clause License

@@ -250,7 +250,8 @@ function disableButtons() {
 function enableButtons() {
   [startBtn, stopBtn, restartBtn, killBtn].forEach(b => b.disabled = false);
 }
-// Set Server Controls Buttons
+
+// Set Server Controls 
 function toggleButtons(state) {
   const starting = state === "starting";
   const stopping = state === "stopping";
@@ -297,8 +298,6 @@ function toggleButtons(state) {
     killBtn.classList.add("hidden");
   }
 }
-
-
 
 // === Server Fucntions ===
 

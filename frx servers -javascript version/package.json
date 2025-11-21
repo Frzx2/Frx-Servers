@@ -14,6 +14,7 @@
 
   "build": {
     "productName": "Frx Servers",
+    "icon": "icon/logo2.png",
     "appId": "com.frx.servermanager",
     "directories": {
       "output": "dist"

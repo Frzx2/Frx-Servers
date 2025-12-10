@@ -1,17 +1,15 @@
 {
   "name": "frx-servers",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "description": "Minecraft Server Manager - Frx Servers",
   "main": "main.js",
   "author": "Frx",
   "license": "BSD-2-Clause",
   "type": "commonjs",
-
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
-
   "build": {
     "productName": "Frx Servers",
     "icon": "icon/logo2.png",
@@ -45,24 +43,37 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Frx Servers"
+      "shortcutName": "Frx-Servers"
     },
     "extraResources": [
-      { "from": "config.json", "to": "config.json" },
-      { "from": "playit.exe", "to": "playit.exe" },
-      { "from": "ui", "to": "ui" },
-      { "from": "Icon", "to": "Icon" }
+      {
+        "from": "config.json",
+        "to": "config.json"
+      },
+      {
+        "from": "playit.exe",
+        "to": "playit.exe"
+      },
+      {
+        "from": "ui",
+        "to": "ui"
+      },
+      {
+        "from": "Icon",
+        "to": "Icon"
+      }
     ]
   },
-
   "devDependencies": {
     "electron": "^39.0.0",
     "electron-builder": "^26.0.12"
   },
-
   "dependencies": {
     "adm-zip": "^0.5.16",
     "chart.js": "^4.5.1",
+    "crypto": "^1.0.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.6.2",
     "pidusage": "^4.0.1",
     "systeminformation": "^5.27.11"
   }

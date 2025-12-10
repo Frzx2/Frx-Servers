@@ -16,10 +16,35 @@ const javaList = document.getElementById("javaList");
 const modal = document.getElementById("licenseModal");
 const link = document.getElementById("licenseLink");
 const closeBtn = document.querySelector(".close");
+const versionLabel = document.getElementById("version_label");
 
 
 let configPath = null;
 let config = {};
+
+// ==================== Initialization ====================
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadConfig();
+
+  if (config.server_location) {
+    serverLocationInput.value = config.server_location;
+  }
+
+  if (config.java_path) {
+    javaPathInput.value = config.java_path;
+  }
+  try {
+    const versionFilePath = path.join(__dirname, "../app_details/version.txt");
+    const versiontxt = await fs.readFile(versionFilePath, "utf8");
+    const version = versiontxt.split("=")[1].trim();
+    versionLabel.textContent = `version - ${version}`;
+  } 
+  catch (err) {
+    console.error("Error reading version file:", err);
+    versionLabel.textContent = "version - unknown";
+  }
+  await loadJavaList();
+});
 
 // ==================== Utility Functions ====================
 
@@ -56,20 +81,6 @@ async function saveConfig() {
     return false;
   }
 }
-// ==================== Initialization ====================
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadConfig();
-
-  if (config.server_location) {
-    serverLocationInput.value = config.server_location;
-  }
-
-  if (config.java_path) {
-    javaPathInput.value = config.java_path;
-  }
-
-  await loadJavaList();
-});
 
 // ==================== Server Location Logic ====================
 browseBtn.addEventListener("click", async () => {

@@ -228,72 +228,105 @@ function openEditPopup(serverPath, currentName) {
   const fileInput = popup.querySelector("#edit-icon");
   const previewImg = popup.querySelector("#icon-preview");
 
-  // === Live icon preview ===
+  // === Live icon preview WITH 64x64 resize ===
   fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => (previewImg.src = e.target.result);
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const img = new Image();
+    const reader = new FileReader();
+
+    reader.onload = e => {
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+
+        ctx.clearRect(0, 0, 64, 64);
+        ctx.drawImage(img, 0, 0, 64, 64);
+
+        const resizedDataURL = canvas.toDataURL("image/png");
+        previewImg.src = resizedDataURL;
+      };
+      img.src = e.target.result;
+    };
+
+    reader.readAsDataURL(file);
   });
 
   popup.querySelector("#cancel-edit").onclick = () => popup.remove();
 
   popup.querySelector("#save-edit").onclick = async () => {
-  const newName = popup.querySelector("#edit-name").value.trim();
-  const iconFile = popup.querySelector("#edit-icon").files[0];
+    const newName = popup.querySelector("#edit-name").value.trim();
+    const iconFile = popup.querySelector("#edit-icon").files[0];
 
-  const oldFolder = path.basename(serverPath);
-  const parentDir = path.dirname(serverPath);
-  const newFolderName = newName.replace(/[<>:"/\\|?*]/g, ""); // sanitize
-  const newFolderPath = path.join(parentDir, newFolderName);
+    const oldFolder = path.basename(serverPath);
+    const parentDir = path.dirname(serverPath);
+    const newFolderName = newName.replace(/[<>:"/\\|?*]/g, "");
+    const newFolderPath = path.join(parentDir, newFolderName);
 
-  try {
-    // === Rename folder first ===
-    if (newFolderName && newFolderName !== oldFolder) {
-      fs.renameSync(serverPath, newFolderPath);
-      console.log(`✅ Renamed folder to: ${newFolderName}`);
+    try {
+      // === Rename folder first ===
+      if (newFolderName && newFolderName !== oldFolder) {
+        fs.renameSync(serverPath, newFolderPath);
+        console.log(`✅ Renamed folder to: ${newFolderName}`);
 
-      // Update cache reference
-      if (serversData[serverPath]) {
-        serversData[newFolderPath] = serversData[serverPath];
-        delete serversData[serverPath];
+        if (serversData[serverPath]) {
+          serversData[newFolderPath] = serversData[serverPath];
+          delete serversData[serverPath];
+        }
       }
+
+      // === Update info.json ===
+      const infoPath = path.join(newFolderPath, "server_info.json");
+      const data = fs.existsSync(infoPath)
+        ? JSON.parse(fs.readFileSync(infoPath, "utf-8"))
+        : {};
+
+      if (newName) data.server_name = newName;
+      fs.writeFileSync(infoPath, JSON.stringify(data, null, 2));
+
+      // === Resize & Save Minecraft Icon (64x64 PNG) ===
+      if (iconFile) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext("2d");
+
+            ctx.clearRect(0, 0, 64, 64);
+            ctx.drawImage(img, 0, 0, 64, 64);
+
+            const buffer = Buffer.from(
+              canvas.toDataURL("image/png").split(",")[1],
+              "base64"
+            );
+
+            fs.writeFileSync(
+              path.join(newFolderPath, "server-icon.png"),
+              buffer
+            );
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(iconFile);
+      }
+
+      // === Refresh server list ===
+      if (typeof loadServers === "function") {
+        setTimeout(loadServers, 400);
+      }
+
+    } catch (err) {
+      console.error("❌ Error updating server:", err);
     }
 
-    // === Update info.json inside the renamed folder ===
-    const infoPath = path.join(newFolderPath, "server_info.json");
-    const data = fs.existsSync(infoPath)
-      ? JSON.parse(fs.readFileSync(infoPath, "utf-8"))
-      : {};
-
-    if (newName) data.server_name = newName;
-    fs.writeFileSync(infoPath, JSON.stringify(data, null, 2));
-
-    // === Update icon (if any) ===
-    if (iconFile) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        fs.writeFileSync(
-          path.join(newFolderPath, "server-icon.png"),
-          Buffer.from(new Uint8Array(reader.result))
-        );
-      };
-      reader.readAsArrayBuffer(iconFile);
-    }
-
-    // === Refresh server list after all operations ===
-    if (typeof loadServers === "function") {
-      setTimeout(loadServers, 400); // slight delay ensures folder settled
-    }
-
-  } catch (err) {
-    console.error("❌ Error updating server:", err);
-  }
-
-  popup.remove();
-};
+    popup.remove();
+  };
 }
 
 

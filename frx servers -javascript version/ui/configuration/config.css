@@ -135,7 +135,6 @@ button:hover {
 }
 
 /* === FOOTER === */
-/* === FOOTER === */
 footer {
   position: fixed;
   bottom: 10px;
@@ -303,6 +302,19 @@ footer a:hover {
   color: var(--accent);
 }
 
+/* Version Display */
+#version {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #00eaff; /* Oceanic cyan */
+  opacity: 0.9;
+
+  text-shadow: 0 0 6px rgba(0, 234, 255, 0.6); /* optional glow */
+  user-select: none; /* prevents highlighting */
+}
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }

@@ -491,6 +491,50 @@ button:hover {
   height: 18px;
 }
 
+#edit-icon {
+  width: 100%;
+  max-width: 260px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px dashed rgba(140, 200, 220, 0.35);
+  background: linear-gradient(145deg, #0f2027, #203a43, #2c5364);
+  color: #e6f6ff;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.45);
+}
+
+#edit-icon::file-selector-button {
+  background: linear-gradient(145deg, #1f3a44, #2b5563);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 9px;
+  color: #e6f6ff;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(60, 140, 170, 0.35);
+}
+
+#edit-icon::file-selector-button:hover {
+  background: linear-gradient(145deg, #2a5563, #3a7387);
+  box-shadow: 0 0 14px rgba(100, 190, 230, 0.6);
+  transform: scale(1.06);
+}
+
+#edit-icon:hover {
+  border-color: rgba(120, 210, 240, 0.9);
+  background: linear-gradient(145deg, #132a33, #254a54, #35697c);
+}
+
+#edit-icon:active::file-selector-button {
+  transform: scale(0.96);
+  box-shadow: 0 0 6px rgba(80, 160, 200, 0.4);
+}
+
 
 /* Animations */
 @keyframes fadeIn {

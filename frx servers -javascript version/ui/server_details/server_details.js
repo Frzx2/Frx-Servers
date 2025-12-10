@@ -7,12 +7,25 @@ const home_screen =document.getElementById("home_menu");
 const { spawn } = require("child_process");
 const process = require("process");
 const os = require("os");
-const { app } = require('electron');
 const si = require("systeminformation");
 const { error } = require("console");
 const { exec,execSync } = require("child_process");
 const https = require("https");
+const crypto = require("crypto");
+// Main Window On closing // 
 
+ipcRenderer.on("app-close", async () => {
+  console.log("App is trying to close, running cleanup...");
+
+  try {
+    await stopServer(); 
+  } catch (err) {
+    console.error("Cleanup failed:", err);
+  }
+
+  // Notify main process that cleanup is done
+  ipcRenderer.send("app-close-confirmed");
+});
 
 // === Initialization ===
 document.addEventListener("DOMContentLoaded", () => {
@@ -319,7 +332,7 @@ async function startServer() {
   const propertiesPath = path.join(baseDir, "server.properties");
   // Reset Console Messages
   consoleBox.textContent = "";
-  appendConsole("Clearing Logs",false,true)
+  appendConsole("Clearing Logs", "info");
 
   // === Read server_info.json ===
   let serverInfo = {};
@@ -713,50 +726,132 @@ async function killServer() {
 }
 
 // === Playit.gg Opertaion ===
+let playitPollInterval = null;
 
-// Fetching Ip from Playit
 async function fetchPlayitIP() {
-  try {
-    let ipStatus = await ipcRenderer.invoke("start-playit");
-    document.getElementById("server-ip").innerText = ipStatus;
 
-    // Keep checking until we get a real joinmc.link domain
+  try {
+    const ipStatus = await ipcRenderer.invoke("start-playit");
+    document.getElementById("server-ip").innerText = ipStatus;
+    // ✅ Prevent multiple polling loops
+    if (playitPollInterval) return ipStatus;
+
+    // ✅ Start polling ONLY if still fetching
     if (ipStatus === "Fetching IP...") {
-      const interval = setInterval(async () => {
-        const status = await ipcRenderer.invoke("start-playit");
-        if (status.includes(".joinmc.link")) {
-          clearInterval(interval);
-          document.getElementById("server-ip").innerText = status;
-          console.log("✅ Playit IP fetched:", status);
-          try {
+
+      playitPollInterval = setInterval(async () => {
+        try {
+          const status = await ipcRenderer.invoke("start-playit");
+          if (status && status.includes(".joinmc.link")) {           
+
+            clearInterval(playitPollInterval);
+            playitPollInterval = null;
+
+            document.getElementById("server-ip").innerText = status;
+
+            //  Update server_info.json safely
+            try {
               const baseDir = localStorage.getItem("selectedServerPath");
-              const infoPath = path.join(baseDir, "server_info.json");
-              if (fs.existsSync(infoPath)) {
-                const data = JSON.parse(fs.readFileSync(infoPath, "utf8"));
-                data.server_ip = status
-                fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf8");
+              if (!baseDir) {
+                const msg = "Server path not selected.";
+                showToast(msg, "error");
+                appendConsole(msg, "error");
+                return;
               }
-            } catch (err) {
-              appendConsole(`Error updating server_info.json: ${err.message}`)}
+
+              const infoPath = path.join(baseDir, "server_info.json");
+
+              if (!fs.existsSync(infoPath)) {
+                const msg = "server_info.json not found.";
+                showToast(msg, "error");
+                appendConsole(msg, "error");
+                return;
+              }
+
+              const data = JSON.parse(fs.readFileSync(infoPath, "utf8"));
+              data.server_ip = status;
+
+              fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf8");
+
+              console.log("💾 [DEBUG] server_info.json updated.");
+
+            } catch (fsErr) {
+              const msg = "Failed to update server_info.json: " + fsErr.message;
+              console.error("❌", msg);
+              showToast(msg, "error");
+              appendConsole(msg, "error");
+            }
+          }
+
+        } catch (pollErr) {
+          const msg = "Playit polling failed: " + pollErr.message;
+          console.error("❌", msg);
+          showToast(msg, "error");
+          appendConsole(msg, "error");
         }
-      }, 2000); // check every 2 seconds
+      }, 2000);
     }
 
     return ipStatus;
+
   } catch (err) {
-    console.error("Failed to fetch Playit IP:", err);
-    return "Error fetching IP";
+    const msg = "Failed to start Playit: " + err.message;
+    console.error("❌", msg);
+    showToast(msg, "error");
+    appendConsole(msg, "error");
+    return "Error";
   }
 }
-//Stoping Playit
+
+
+// ✅ STOP PLAYIT (
 async function stopPlayit() {
   try {
     const result = await ipcRenderer.invoke("stop-playit");
+
     document.getElementById("server-ip").innerText = "Tunnel Stopped";
+
+    if (playitPollInterval) {
+      clearInterval(playitPollInterval);
+      playitPollInterval = null;
+    }
+
   } catch (err) {
-    console.error("❌ Failed to stop Playit:", err);
+    const msg = "Failed to stop Playit: " + err.message;
+    console.error("❌", msg);
+    showToast(msg, "error");
+    appendConsole(msg, "error");
   }
 }
+
+
+// DISCONNECT LISTENER FROM MAIN
+ipcRenderer.on("playit-disconnected", (event, msg) => {
+  console.warn("⚠️ Playit disconnected:", msg);
+
+  document.getElementById("server-ip").innerText = "Tunnel Disconnected";
+
+  showToast("Playit disconnected: " + msg, "error");
+  appendConsole("Playit disconnected: " + msg, "error");
+
+  if (playitPollInterval) {
+    clearInterval(playitPollInterval);
+    playitPollInterval = null;
+  }
+});
+
+
+//  IP FOUND LISTENER (INSTANT UPDATE)
+ipcRenderer.on("playit-ip-found", (event, ip) => {
+  console.log("✅ Instant Playit IP received:", ip);
+
+  if (playitPollInterval) {
+    clearInterval(playitPollInterval);
+    playitPollInterval = null;
+  }
+
+  document.getElementById("server-ip").innerText = ip;
+});
 
 // === Append console messages ===
 function appendConsole(msg, type = "info", clearLog = false) {
@@ -1084,13 +1179,31 @@ function playSound(type) {
 // === Navigation Menu ===
 document.querySelectorAll(".menu-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".menu-btn").forEach(b => b.classList.remove("active"));
+    // Update active menu button
+    document.querySelectorAll(".menu-btn").forEach(b =>
+      b.classList.remove("active")
+    );
     btn.classList.add("active");
 
-    document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
-    document.getElementById(btn.dataset.section)?.classList.add("active");
+    // Update active section
+    document.querySelectorAll(".section").forEach(sec =>
+      sec.classList.remove("active")
+    );
+
+    const sectionId = btn.dataset.section;
+    const sectionEl = document.getElementById(sectionId);
+
+    if (sectionEl) {
+      sectionEl.classList.add("active");
+
+      // ✅ Call this ONLY when Properties is selected
+      if (sectionId === "properties") {
+        loadServerProperties(serverPath);
+      }
+    }
   });
 });
+
 
 
 // === Open Folder ===
@@ -1572,6 +1685,11 @@ function writeJSON(filePath, data) {
 
 // ==================== Mojang API ==================== //
 function fetchUUID(playerName) {
+  const online_mode = isOnlineModeEnabled(serverPath);
+  if(!online_mode){
+    showToast("Cannot fetch UUIDs when Online Mode is disabled.", "error");
+    return null;  
+  }
   return new Promise((resolve) => {
     const url = `https://api.mojang.com/users/profiles/minecraft/${playerName}`;
     
@@ -1600,6 +1718,43 @@ function fetchUUID(playerName) {
       });
     }).on("error", () => resolve(null));
   });
+}
+
+// ==================== Check Online Mode ==================== //
+function isOnlineModeEnabled(serverPath) {
+  try {
+    const propertiesFile = path.join(serverPath, "server.properties");
+
+    if (!fs.existsSync(propertiesFile)) {
+      console.error("❌ server.properties not found at:", propertiesFile);
+      return null;
+    }
+
+    const fileData = fs.readFileSync(propertiesFile, "utf8");
+    const lines = fileData.split(/\r?\n/);
+
+    for (const line of lines) {
+      if (!line || line.startsWith("#")) continue;
+
+      const [key, value] = line.split("=");
+
+      if (key?.trim() === "online-mode") {
+        const enabled = value?.trim().toLowerCase() === "true";
+
+        console.log(
+          `✅ Online Mode is currently: ${enabled ? "ENABLED" : "DISABLED"}`
+        );
+
+        return enabled;
+      }
+    }
+
+    console.warn("⚠️ online-mode not found in server.properties");
+    return null;
+  } catch (error) {
+    console.error("⚠️ Error reading online-mode:", error);
+    return null;
+  }
 }
 
 // ==================== Player List UI ==================== //
@@ -1644,6 +1799,8 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
 
   let newEntry;
   let whitelistChanged = false;
+  let opchanged = false;
+  let banchanged = false;
 
   if (type === "whitelist") {
     const uuid = await fetchUUID(playerName);
@@ -1660,7 +1817,7 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
 
   else if (type === "ops") {
     const uuid = await fetchUUID(playerName);
-
+    opchanged = true;
     if (!uuid) {
       showToast("Cannot add OP without UUID", "error");
       return;
@@ -1684,6 +1841,7 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
       expires: "forever",
       reason: "Banned by an operator."
     };
+    banchanged = true;
   }
 
   // Save the new record
@@ -1695,18 +1853,26 @@ async function addPlayer(type, playerName, inputEl, playerListEl) {
   // Ask to apply changes only for whitelist
   if (whitelistChanged) {
     askforapply();
+  };
+  if (opchanged || banchanged){
+    askforrestart();
   }
 }
 
-function removePlayer(type, playerName, playerListEl) {
+async function removePlayer(type, playerName, playerListEl) {
+  askforrestart(); 
   const filePath = getFilePath(type);
   let players = readJSON(filePath);
   players = players.filter((p) => p.name !== playerName);
   writeJSON(filePath, players);
   renderPlayerList(type, playerListEl);
-}
 
+}
+// ==================== Ask to Apply Whitelist ==================== //
 async function askforapply(){
+  if (!isServerRunning || !serverProcess) {
+    return;
+  }
   const reply = await showToast("Do You Want to Apply Whitelist?","success",true)
   if (!reply){
     appendConsole("Whitelist will be applied once server restarts",)
@@ -1725,7 +1891,25 @@ async function askforapply(){
   }
   }
 }
+// ==================== Ask to Restart for OP Changes ==================== //
+async function askforrestart() {
+  // If server is not running, no restart needed
+  if (!isServerRunning || !serverProcess) {
+    return;
+  }
 
+  const reply = await showToast(
+    "Server needs to restart to apply changes. Restart now?",
+    "success",
+    true
+  );
+
+  if (!reply) {
+    showToast("changes will be applied once the server restarts.", "success");
+  } else {
+    restartServer();
+  }
+}
 // ==================== Tab Setup ==================== //
 function setupPlayerTabs() {
   const tabButtons = document.querySelectorAll(".tab-btn");
@@ -1747,8 +1931,7 @@ function setupPlayerTabs() {
   renderPlayerList(currentTab, playerList);
   setupPlayerFilter?.();
 }
-
-
+// ==================== Player Search Filter ==================== //
 function setupPlayerFilter() {
   const searchInput = document.getElementById("pm-search-input");
   const playerList = document.getElementById("pm-list");
@@ -1765,8 +1948,6 @@ function setupPlayerFilter() {
     });
   });
 }
-
-
 
 
 

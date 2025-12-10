@@ -4,6 +4,9 @@ const fs = require('fs');
 const { execSync } = require('child_process'); //
 const { existsSync, readdirSync, statSync } = require('fs');
 const { spawn } = require("child_process");
+const dns = require("dns");
+let mainWindow;
+
 
 // === CONFIG FILE PATH ===
 const CONFIG_PATH = app.isPackaged
@@ -35,7 +38,7 @@ function saveConfig(config) {
 function createWindow() {
   const config = loadConfig();
 
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 1000,
@@ -47,15 +50,35 @@ function createWindow() {
       contextIsolation: false,
     },
   });
+
   // Load starting page
   const startPage = config.setup
     ? path.join(__dirname, 'ui', 'home_screen', 'home_screen.html')
     : path.join(__dirname, 'ui', 'setup', 'setup.html');
 
-  win.loadFile(startPage).catch((err) => {
+  mainWindow.loadFile(startPage).catch((err) => {
     console.error('[ERROR] Failed to load HTML file:', err);
   });
+
+  // ==================== Intercept Close Event ==================== //
+  mainWindow.on("close", (e) => {
+    e.preventDefault(); // Stop immediate close
+
+    // Send message to renderer to do cleanup
+    mainWindow.webContents.send("app-close");
+
+    // Wait for renderer to confirm close
+    const timeout = setTimeout(() => {
+      mainWindow.destroy(); // Force close if renderer doesn't respond
+    }, 2000);
+
+    ipcMain.once("app-close-confirmed", () => {
+      clearTimeout(timeout);
+      mainWindow.destroy(); // Close after renderer finishes
+    });
+  });
 }
+
 
 // === IPC HANDLERS ===
 
@@ -189,86 +212,144 @@ ipcMain.handle('load-config', () => {
 //  Playit Process Handler
 let playitProcess = null;
 let playitIP = null;
+let heartbeatInterval = null;
+let restarting = false;
+
+//  Check if internet is online
+function isInternetOnline() {
+  return new Promise((resolve) => {
+    dns.lookup("google.com", (err) => {
+      resolve(!err);
+    });
+  });
+}
+
+//  Start playit check (every 10s)
+function startHeartbeat(mainWindow) {
+  clearInterval(heartbeatInterval);
+
+  heartbeatInterval = setInterval(async () => {
+    const online = await isInternetOnline();
+
+    if (!online) {
+      console.warn(" Internet lost — heartbeat failed");
+      playitIP = null;
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("playit-disconnected", "Internet lost");
+      }
+    }
+  }, 10000);
+}
+
+//  Auto-restart handler
+async function autoRestartPlayit(mainWindow) {
+  if (restarting) return;
+  restarting = true;
+
+  console.log(" Attempting auto-restart...");
+
+  while (!(await isInternetOnline())) {
+    console.log(" Waiting for internet...");
+    await new Promise(res => setTimeout(res, 5000));
+  }
+
+  console.log(" Internet restored — Restarting Playit");
+  restarting = false;
+
+  await startPlayitInternal(mainWindow);
+}
+
+//  playit start function 
+async function startPlayitInternal(mainWindow) {
+  if (playitProcess) return;
+
+  const playitPath = app.isPackaged
+    ? path.join(process.resourcesPath, "playit.exe")
+    : path.join(__dirname, "playit.exe");
+
+  playitProcess = spawn(playitPath, {
+    cwd: path.dirname(playitPath),
+    windowsHide: true,
+  });
+
+  playitProcess.stdout.setEncoding("utf8");
+  playitProcess.stderr.setEncoding("utf8");
+
+  playitProcess.stdout.on("data", (data) => {
+    const lines = data.toString().split(/\r?\n/);
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      const match = line.match(/[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-]+\.joinmc\.link/);
+      if (match) {
+        playitIP = match[0];
+        console.log("[PLAYIT] ✅ Domain:", playitIP);
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("playit-ip-found", playitIP);
+        }
+
+        startHeartbeat(mainWindow);
+      }
+    }
+  });
+
+  playitProcess.stderr.on("data", (data) => {
+    const lines = data.toString().split(/\r?\n/);
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+
+      console.error("[PLAYIT ERROR]", line);
+
+      if (
+        line.includes("Failed to load") ||
+        line.includes("ConnectionReset") ||
+        line.includes("api.playit.gg")
+      ) {
+        playitIP = null;
+
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("playit-disconnected", line.trim());
+        }
+
+        autoRestartPlayit(mainWindow);
+      }
+    }
+  });
+
+  playitProcess.on("exit", async () => {
+    console.warn("[PLAYIT] Process exited");
+    playitProcess = null;
+    playitIP = null;
+    clearInterval(heartbeatInterval);
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("playit-disconnected", "Playit closed");
+    }
+
+    autoRestartPlayit(mainWindow);
+  });
+}
 
  // 7. Start Playit
-ipcMain.handle("start-playit", async (event) => {
-  try {
-    // Prevent multiple playit.exe instances
-    if (playitProcess) {
-      return playitIP || "Fetching IP...";
-    }
-
-    const playitPath = app.isPackaged
-      ? path.join(process.resourcesPath, "playit.exe") // Production
-      : path.join(__dirname, "playit.exe");           // Dev
-
-    playitProcess = spawn(playitPath, {
-      cwd: path.dirname(playitPath),
-      windowsHide: true,
-    });
-
-    // Decode stdout in UTF-8
-    playitProcess.stdout.setEncoding("utf8");
-
-    playitProcess.stdout.on("data", (data) => {
-      const lines = data.toString().split(/\r?\n/);
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        // Detect domain like xyz123.joinmc.link
-        const match = line.match(/[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-]+\.joinmc\.link/);
-        if (match && !playitIP) {
-          playitIP = match[0];
-          console.log("[PLAYIT] ✅ Found domain:", playitIP);
-          event.sender.send("playit-ip-found", playitIP);
-        }
-      }
-    });
-
-    // Print any errors too
-    playitProcess.stderr.setEncoding("utf8");
-    playitProcess.stderr.on("data", (data) => {
-      const lines = data.toString().split(/\r?\n/);
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        console.error("[PLAYIT ERROR]", line);
-      }
-    });
-
-    playitProcess.on("exit", (code) => {
-      console.log(`[PLAYIT] playit.exe exited with code ${code}`);
-      playitProcess = null;
-      playitIP = null;
-    });
-
-    return playitIP || "Fetching IP...";
-  } catch (err) {
-    console.error("[PLAYIT ERROR]", err);
-    return "Error starting playit.exe";
-  }
+ipcMain.handle("start-playit", async () => {
+  await startPlayitInternal(mainWindow);
+  return playitIP || "Fetching IP...";
 });
  // 8. Stop Playit
-ipcMain.handle("stop-playit", async (event) => {
-  try {
-    if (playitProcess) {
-      playitProcess.kill();
-      playitProcess = null;
-      playitIP = null;
-
-      console.log("[PLAYIT] Tunnel stopped");
-
-      // Notify renderer
-      event.sender.send("playit-stopped", "Tunnel stopped");
-      return "Tunnel stopped";
-    } else {
-      console.log("[PLAYIT] No tunnel running");
-      return "No tunnel running";
-    }
-  } catch (err) {
-    console.error("[PLAYIT ERROR] Failed to stop tunnel:", err);
-    return `Failed to stop tunnel: ${err.message}`;
+ipcMain.handle("stop-playit", async () => {
+  if (playitProcess) {
+    playitProcess.kill();
+    playitProcess = null;
+    playitIP = null;
+    clearInterval(heartbeatInterval);
+    restarting = false;
+    return "Tunnel Stopped";
   }
+  return "No tunnel running";
 });
 
 

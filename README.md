@@ -30,18 +30,7 @@ This project uses Playit.gg tunneling to make your Minecraft server joinable onl
 - Java 17+ recommended  
   (If Java is missing, the app will help you install it)
 - Playit.gg Agent set up before launching  
-  Download: https://playit.gg/
+  Login: https://playit.gg/
 
 ---
 
-### Contributing
-
-This project is open to learn, modify, and improve.  
-Pull requests and issue reports are welcome.
-
----
-
-### License
-
-Frx Servers © 2025 Frzx2  
-Licensed under the BSD 3-Clause License

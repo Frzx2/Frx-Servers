@@ -36,4 +36,4 @@ This project uses Playit.gg tunneling to make your Minecraft server joinable onl
 ## Warnings 
 - App is not completly tested and might not work as expected
 - Frx server is not responsible for any data losses
-- -Node intergration Enabled (js version)
+- Node intergration Enabled (js version)

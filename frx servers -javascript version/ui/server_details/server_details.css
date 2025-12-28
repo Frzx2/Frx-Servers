@@ -1185,3 +1185,202 @@ canvas#usage-graph {
   pointer-events: none;
   cursor: not-allowed;
 }
+
+/* === Functions === */
+/* Functions layout */
+.functions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.functions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Function card */
+.function-card {
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+
+/* Top row */
+.function-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Expandable content */
+.function-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  margin-top: 0;
+}
+
+.function-card.active .function-content {
+  max-height: 400px;
+  opacity: 1;
+  margin-top: 14px;
+}
+
+/* Items */
+.function-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: #444;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.switch input:checked + .slider {
+  background: #3aa9ff;
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(22px);
+}
+/* Function inputs & selects */
+.function-item input,
+.function-item select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #e8f0ff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: 
+    border 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+/* Remove ugly number arrows (optional but recommended) */
+.function-item input[type="number"]::-webkit-inner-spin-button,
+.function-item input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Focus state */
+.function-item input:focus,
+.function-item select:focus {
+  border-color: #3aa9ff;
+  box-shadow: 0 0 0 2px rgba(58, 169, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Labels */
+.function-item label {
+  font-size: 0.8rem;
+  color: rgba(220, 235, 255, 0.85);
+  letter-spacing: 0.4px;
+}
+
+/* Select dropdown arrow styling */
+.function-item select {
+  appearance: none;
+  background-image: 
+    linear-gradient(45deg, transparent 50%, #9fcbff 50%),
+    linear-gradient(135deg, #9fcbff 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
+}
+
+/* Disabled look (future-proof) */
+.function-item input:disabled,
+.function-item select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* Clean select styling */
+.function-item select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+
+  padding: 10px 36px 10px 12px;
+  color: #e8f0ff;
+  font-size: 0.9rem;
+
+  cursor: pointer;
+
+  /* Custom arrow */
+  background-image:
+    linear-gradient(45deg, transparent 50%, #8fc6ff 50%),
+    linear-gradient(135deg, #8fc6ff 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 55%,
+    calc(100% - 13px) 55%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+
+  transition:
+    border 0.25s ease,
+    box-shadow 0.25s ease,
+    background-color 0.25s ease;
+}
+
+/* Hover */
+.function-item select:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Focus */
+.function-item select:focus {
+  border-color: #3aa9ff;
+  box-shadow: 0 0 0 2px rgba(58, 169, 255, 0.25);
+}
+
+/* Options (limited support, but helps in some browsers) */
+.function-item option {
+  background: #0b1d33;
+  color: #e8f0ff;
+}

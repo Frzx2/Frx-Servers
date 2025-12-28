@@ -11,6 +11,7 @@ const si = require("systeminformation");
 const { error } = require("console");
 const { exec,execSync } = require("child_process");
 const https = require("https");
+const { Rcon } = require("rcon-client");
 const crypto = require("crypto");
 // Main Window On closing // 
 
@@ -41,6 +42,43 @@ document.addEventListener("DOMContentLoaded", () => {
   window.serverPath = serverPath;
   loadServerInfo(serverPath);
   loadServerProperties(serverPath);
+  // === Restart Toggle Logic ===
+   // Get restart UI elements
+  const restartToggle = document.getElementById("restart-toggle");
+  const restartIntervalInput = document.getElementById("restart-interval");
+  const restartCard = document.getElementById("restart-card");
+
+  if (!restartToggle || !restartIntervalInput || !restartCard) {
+    appendConsole("Restart UI elements missing", "error");
+    return;
+  }
+
+  // Load saved auto-restart state into UI
+  LoadAutoRestart();
+
+  // Toggle ON / OFF behavior
+  restartToggle.addEventListener("change", () => {
+    const enabled = restartToggle.checked;
+
+    restartCard.classList.toggle("active", enabled);
+    restartIntervalInput.disabled = !enabled;
+
+    SaveAutoRestart(); // optional but recommended
+  });
+
+  // Restart interval input handling
+  restartIntervalInput.addEventListener("input", () => {
+    let value = parseInt(restartIntervalInput.value, 10);
+
+    if (isNaN(value)) return;
+
+    if (value < 1) value = 1;
+    if (value > 24) value = 24;
+
+    restartIntervalInput.value = value;
+
+    SaveAutoRestart(); // optional
+  });
 
   // 🪶 Initialize Feather icons
   if (typeof feather !== "undefined") {
@@ -362,7 +400,7 @@ async function startServer() {
     stopPlayerMonitor();
     return;
   }
-  // === Verify and enforce RCON configuration ===
+  // === Check for server.properties ===
   if (!fs.existsSync(propertiesPath)) {
     appendConsole("⚠️ server.properties not found — cannot verify RCON.", "error");
     toggleButtons("stopped");
@@ -373,54 +411,73 @@ async function startServer() {
   }
 
 try {
+  // ---------- Load server.properties ----------
   let properties = fs.readFileSync(propertiesPath, "utf8");
   let modified = false;
 
-  // === Ensure RCON is enabled ===
-  if (/enable-rcon\s*=\s*false/i.test(properties)) {
-    properties = properties.replace(/enable-rcon\s*=\s*false/i, "enable-rcon=true");
-    modified = true;
-  } else if (!/enable-rcon\s*=\s*true/i.test(properties)) {
-    properties += "\nenable-rcon=true";
+  // ---------- Parse properties ----------
+  const propMap = {};
+  for (const line of properties.split("\n")) {
+    if (!line || line.startsWith("#") || !line.includes("=")) continue;
+    const [k, ...v] = line.split("=");
+    propMap[k.trim()] = v.join("=").trim();
+  }
+
+  // ---------- Ensure server_info.json password ----------
+  let rconPassword = serverInfo.rcon_password;
+  let rconPort = serverInfo.rcon_port || Number(propMap["rcon.port"]) || 25575;
+
+  if (!rconPassword) {
+    rconPassword = crypto.randomBytes(16).toString("hex");
+    serverInfo.rcon_password = rconPassword;
+    serverInfo.rcon_port = rconPort;
+  }
+
+  // ---------- Sync server_info.json (always) ----------
+  serverInfo.rcon_password = rconPassword;
+  serverInfo.rcon_port = rconPort;
+  fs.writeFileSync(infoPath, JSON.stringify(serverInfo, null, 2), "utf8");
+
+  // ---------- enable-rcon ----------
+  if (propMap["enable-rcon"] !== "true") {
+    propMap["enable-rcon"] = "true";
     modified = true;
   }
 
-  //=== Always overwrite RCON password with 123 ===
-  if (/rcon\.password\s*=.*/i.test(properties)) {
-    properties = properties.replace(/rcon\.password\s*=.*/i, "rcon.password=123");
-  } else {
-    properties += "\nrcon.password=123";
-  }
-  modified = true; // always mark as modified since password is forced
-
-  // === Ensure RCON port exists ===
-  if (/rcon\.port\s*=\s*\d+/i.test(properties)) {
-  } else {
-    properties += "\nrcon.port=25575";
+  // ---------- rcon.password (FORCE MATCH info) ----------
+  if (propMap["rcon.password"] !== rconPassword) {
+    propMap["rcon.password"] = rconPassword;
     modified = true;
   }
 
-  // === Save file & allow OS to flush ===
+  // ---------- rcon.port ----------
+  if (!propMap["rcon.port"]) {
+    propMap["rcon.port"] = String(rconPort);
+    modified = true;
+  }
+
+  // ---------- Rebuild properties ----------
   if (modified) {
-    fs.writeFileSync(propertiesPath, properties, "utf8");
-    await new Promise(resolve => setTimeout(resolve, 500));
+    const rebuilt = Object.entries(propMap)
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+
+    fs.writeFileSync(propertiesPath, rebuilt + "\n", "utf8");
+    await new Promise(res => setTimeout(res, 300));
   }
 
-  // === Reverify file contents ===
+  // ---------- Verify ----------
   const verify = fs.readFileSync(propertiesPath, "utf8");
-  if (!/enable-rcon\s*=\s*true/i.test(verify) ||
-      !/rcon\.password\s*=\s*123/i.test(verify) ||
-      !/rcon\.port\s*=\s*\d+/i.test(verify)) {
-    appendConsole("❌ RCON verification failed after save — cannot continue.", "error");
-    toggleButtons("stopped");
-    setServerState("offline");
-    stopPlayerMonitor();
-    return;
+  if (
+    !/enable-rcon\s*=\s*true/i.test(verify) ||
+    !new RegExp(`rcon\\.password\\s*=\\s*${rconPassword}`).test(verify) ||
+    !new RegExp(`rcon\\.port\\s*=\\s*${rconPort}`).test(verify)
+  ) {
+    throw new Error("RCON verification failed after sync");
   }
-
 
 } catch (err) {
-  appendConsole(`❌ Failed to verify or update RCON: ${err}`, "error");
+  appendConsole(`❌ Failed to setup RCON: ${err.message}`, "error");
   toggleButtons("stopped");
   setServerState("offline");
   stopPlayerMonitor();
@@ -469,8 +526,9 @@ try {
         setServerState("online");
         isServerRunning = true;
         showToast("Server Started!", "success");
-        startPlayerMonitor(serverProcess);
-        toggleButtons("running")
+        startPlayerMonitor();
+        toggleButtons("running");
+        ExecuteAutoRestart();
       }
     });
 
@@ -606,6 +664,7 @@ async function stopServer() {
   stopPlayerMonitor();
   setServerState("offline");
   toggleButtons("stopped")
+  stopAutoRestart();
 }
 
 // Ensuring Rcon is Set to True
@@ -624,6 +683,43 @@ function ensureRconCredentials() {
     console.log("[DEBUG] ensureRconCredentials error:", e);
   }
   return { password: null, port: null };
+}
+// Generating Rcon Password 
+function RconPassword() {
+  const info_path = path.join(serverPath || ".", "server_info.json");
+
+  // Default empty object
+  let data = {};
+
+  // Read existing file if present
+  if (fs.existsSync(info_path)) {
+    try {
+      data = JSON.parse(fs.readFileSync(info_path, "utf8"));
+    } catch (err) {
+      console.error("Failed to read server_info.json:", err.message);
+      data = {};
+    }
+  }
+
+  // If password already exists, return it
+  if (data.rcon_password && typeof data.rcon_password === "string") {
+    return data.rcon_password;
+  }
+
+  // Generate secure password
+  const password = crypto.randomBytes(16).toString("hex");
+
+  // Append (not overwrite) password
+  data.rcon_password = password;
+
+  // Save back to file
+  try {
+    fs.writeFileSync(info_path, JSON.stringify(data, null, 2), "utf8");
+  } catch (err) {
+    console.error("Failed to write RCON password:", err.message);
+  }
+
+  return password;
 }
 
 //Restarting Server 
@@ -713,6 +809,7 @@ async function killServer() {
     appendConsole("Server process killed successfully.");
     showToast("Server Killed", "error");
     stopPlayerMonitor();
+    stopAutoRestart();
     setServerState("offline");
     toggleButtons("stopped");
 
@@ -804,7 +901,7 @@ async function fetchPlayitIP() {
 }
 
 
-// ✅ STOP PLAYIT (
+// STOP PLAYIT (
 async function stopPlayit() {
   try {
     const result = await ipcRenderer.invoke("stop-playit");
@@ -1478,6 +1575,8 @@ let playerList = [];
 let playerMonitorActive = false;
 let maxPlayers = 0;
 let serverProc;
+let rconClient = null;
+let rconInterval = null;
 
 
 function getMaxPlayers() {
@@ -1499,50 +1598,110 @@ function getMaxPlayers() {
   return 0;
 }
 
-function startPlayerMonitor(proc) {
+async function startPlayerMonitor() {
   if (playerMonitorActive) return;
   playerMonitorActive = true;
-  serverProc = proc
+
   playerList = [];
   maxPlayers = getMaxPlayers();
 
-  proc.stdout.on("data", (data) => {
-    if (!playerMonitorActive) return;
-    const text = data.toString();
+  // --- Load RCON info from server_info.json ---
+  let rconPort, rconPassword;
+  try {
+    const baseDir = localStorage.getItem("selectedServerPath");
+    const infoPath = path.join(baseDir, "server_info.json");
 
-    // === Player Join ===
-    const joinMatch = text.match(/\[Server thread\/INFO\]: (.+) joined the game/);
-    if (joinMatch) {
-      const playerName = joinMatch[1].trim();
-      if (!playerList.includes(playerName)) {
-        playerList.push(playerName);
-        updatePlayerCard(playerName, true);
+    if (!fs.existsSync(infoPath)) throw new Error("server_info.json not found");
+
+    const serverInfo = JSON.parse(fs.readFileSync(infoPath, "utf8"));
+    rconPort = serverInfo.rcon_port || 25575;
+    rconPassword = serverInfo.rcon_password;
+    if (!rconPassword) throw new Error("RCON password missing in server_info.json");
+  } catch (err) {
+    appendConsole(`❌ Failed to read RCON info: ${err.message}`, "error");
+    playerMonitorActive = false;
+    return;
+  }
+
+  try {
+    rconClient = await Rcon.connect({
+      host: "127.0.0.1",
+      port: rconPort,
+      password: rconPassword
+    });
+
+    appendConsole("🔌 RCON connected (player monitor)", "success");
+
+    // Poll every 2 seconds
+    rconInterval = setInterval(async () => {
+      if (!playerMonitorActive) return;
+
+      try {
+        const res = await rconClient.send("list");
+
+        // Example output:
+        // There are 2 of a max of 20 players online: Steve, Alex
+        let currentPlayers = [];
+        if (res.includes(":")) {
+          const listPart = res.split(":")[1];
+          currentPlayers = listPart
+            .split(",")
+            .map(p => p.trim())
+            .filter(Boolean);
+        }
+
+        // ---- Joins ----
+        for (const p of currentPlayers) {
+          if (!playerList.includes(p)) {
+            playerList.push(p);
+            updatePlayerCard(p, true);
+          }
+        }
+
+        // ---- Leaves ----
+        for (const p of [...playerList]) {
+          if (!currentPlayers.includes(p)) {
+            playerList = playerList.filter(x => x !== p);
+            updatePlayerCard(p, false);
+          }
+        }
+
         updatePlayerInfoFile();
-      }
-    }
 
-    // === Player Leave ===
-    const leaveMatch = text.match(/\[Server thread\/INFO\]: (.+) left the game/);
-    if (leaveMatch) {
-      const playerName = leaveMatch[1].trim();
-      playerList = playerList.filter(p => p !== playerName);
-      updatePlayerCard(playerName, false);
-      updatePlayerInfoFile();
-    }
-  });
+      } catch (err) {
+        appendConsole(`⚠️ RCON list failed: ${err.message}`, "error");
+      }
+    }, 2000);
+
+  } catch (err) {
+    appendConsole(`❌ RCON monitor failed: ${err.message}`, "error");
+    playerMonitorActive = false;
+  }
 }
 
 function stopPlayerMonitor() {
   if (!playerMonitorActive) return;
   playerMonitorActive = false;
-  serverProc = null;
-  appendConsole("🛑 Player Monitor Stopped", "info");
+
+  if (rconInterval) {
+    clearInterval(rconInterval);
+    rconInterval = null;
+  }
+
+  if (rconClient) {
+    try {
+      rconClient.end();
+    } catch {}
+    rconClient = null;
+  }
 
   playerList = [];
+
   const listContainer = document.getElementById("player-list");
   if (listContainer) listContainer.innerHTML = "";
 
   updatePlayerInfoFile(true);
+  appendConsole("🛑 Player Monitor Stopped (RCON)", "info");
 }
 
 function updatePlayerCard(playerName, joined) {
@@ -1949,6 +2108,144 @@ function setupPlayerFilter() {
   });
 }
 
+// === Server Fuctions === //
+let autoRestartTimer = null;
 
+function LoadAutoRestart() {
+  const info_path = path.join(serverPath, "server_info.json");
+
+  // Defaults
+  let autoRestart = false;
+  let restartInterval = 6;
+
+  if (fs.existsSync(info_path)) {
+    try {
+      const serverInfo = JSON.parse(fs.readFileSync(info_path, "utf8"));
+
+      if (typeof serverInfo.auto_restart === "boolean") {
+        autoRestart = serverInfo.auto_restart;
+      }
+
+      if (typeof serverInfo.restart_interval === "number") {
+        restartInterval = serverInfo.restart_interval;
+      }
+
+    } catch (err) {
+      appendConsole(`Failed to read server_info.json: ${err}`, "error");
+    }
+  }
+
+  // ---- Update UI ----
+  const restartToggle = document.getElementById("restart-toggle");
+  const restartIntervalInput = document.getElementById("restart-interval");
+  const restartCard = document.getElementById("restart-card");
+
+  if (!restartToggle || !restartIntervalInput || !restartCard) {
+    appendConsole("Auto-restart UI elements not found", "error");
+    return;
+  }
+
+  restartToggle.checked = autoRestart;
+  restartIntervalInput.value = restartInterval;
+
+  restartCard.classList.toggle("active", autoRestart);
+  restartIntervalInput.disabled = !autoRestart;
+}
+
+function SaveAutoRestart() {
+  const info_path = path.join(serverPath, "server_info.json");
+
+  const restartToggle = document.getElementById("restart-toggle");
+  const restartIntervalInput = document.getElementById("restart-interval");
+
+  if (!restartToggle || !restartIntervalInput) {
+    appendConsole("Cannot save auto-restart: UI elements missing", "error");
+    return;
+  }
+
+  // Read UI values
+  const autoRestart = restartToggle.checked;
+  let restartInterval = parseInt(restartIntervalInput.value, 10);
+
+  // Validate interval
+  if (isNaN(restartInterval) || restartInterval < 1) restartInterval = 1;
+  if (restartInterval > 24) restartInterval = 24;
+
+  // Load existing JSON (if any)
+  let serverInfo = {};
+  if (fs.existsSync(info_path)) {
+    try {
+      serverInfo = JSON.parse(fs.readFileSync(info_path, "utf8"));
+    } catch (err) {
+      appendConsole("server_info.json is corrupted, recreating", "warn");
+      serverInfo = {};
+    }
+  }
+
+  // Update fields
+  serverInfo.auto_restart = autoRestart;
+  serverInfo.restart_interval = restartInterval;
+
+  // Write back to file
+  try {
+    fs.writeFileSync(info_path, JSON.stringify(serverInfo, null, 2), "utf8");
+  } catch (err) {
+    appendConsole(`Failed to save server_info.json: ${err}`, "error");
+  }
+  if (isServerRunning) {
+    showToast("Changes will take effect after server restarts", "success");
+  }
+}
+
+function ExecuteAutoRestart() {
+  const info_path = path.join(serverPath, "server_info.json");
+
+  // Clear any existing timer (safety)
+  stopAutoRestart();
+
+  if (!fs.existsSync(info_path)) {
+    return;
+  }
+
+  let serverInfo;
+  try {
+    serverInfo = JSON.parse(fs.readFileSync(info_path, "utf8"));
+  } catch (err) {
+    appendConsole(`Failed to read server_info.json: ${err}`, "error");
+    return;
+  }
+
+  // Check if auto restart is enabled
+  if (serverInfo.auto_restart !== true) {
+    return;
+  }
+
+  let hours = parseInt(serverInfo.restart_interval, 10);
+
+  // Validate interval
+  if (isNaN(hours) || hours < 1) hours = 1;
+  if (hours > 24) hours = 24;
+
+  const delayMs = hours * 60 * 1000;
+
+  appendConsole(`Auto-restart scheduled in ${hours} hour(s)`, "info");
+
+  autoRestartTimer = setTimeout(() => {
+    appendConsole("Auto-restart triggered", "warn");
+
+    restartServer(); // 🔥 YOUR existing restart function
+
+    // Schedule next restart
+    ExecuteAutoRestart();
+  }, delayMs);
+}
+
+function stopAutoRestart() {
+  if (autoRestartTimer !== null) {
+    clearTimeout(autoRestartTimer);
+    autoRestartTimer = null;
+    appendConsole("Auto-restart stopped", "info");
+  }
+}
 
 

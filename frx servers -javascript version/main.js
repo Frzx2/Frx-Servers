@@ -285,7 +285,6 @@ async function startPlayitInternal(mainWindow) {
       const match = line.match(/[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-]+\.joinmc\.link/);
       if (match) {
         playitIP = match[0];
-        console.log("[PLAYIT] ✅ Domain:", playitIP);
 
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send("playit-ip-found", playitIP);
@@ -322,6 +321,9 @@ async function startPlayitInternal(mainWindow) {
 
   playitProcess.on("exit", async () => {
     console.warn("[PLAYIT] Process exited");
+    playitProcess.removeAllListeners();
+    playitProcess.stdout.removeAllListeners();
+    playitProcess.stderr.removeAllListeners();
     playitProcess = null;
     playitIP = null;
     clearInterval(heartbeatInterval);

@@ -54,6 +54,7 @@
           <button class="menu-btn" data-section="console">Console</button>
           <button class="menu-btn" data-section="player-management">Players</button>
           <button class="menu-btn" data-section="properties">Properties</button>
+          <button class="menu-btn" data-section="functions">Functions</button>
           <div class="tooltip-wrapper" title="When server is online you can't go into Home Menu">
             <button id="home_menu" data-section="home_menu">Home</button>
           </div>
@@ -270,12 +271,40 @@
                   </select>
                 </div>
               </div>
-
-            </div>
           </div> 
         </div>
-      </div>
+        <!-- FUNCTIONS -->
+        <div id="functions" class="section">
+          <div class="functions-header">
+            <h3>Server Functions</h3>
+          </div>
 
+          <div class="functions-grid">
+
+            <!-- Server Restart Function -->
+            <div class="function-card glass-card" id="restart-card">
+              <div class="function-top">
+                <h4>Server Restart</h4>
+
+                <!-- Toggle Switch -->
+                <label class="switch">
+                  <input type="checkbox" id="restart-toggle">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <!-- Expandable Content -->
+              <div class="function-content">
+                <div class="function-item">
+                  <label for="restart-interval">Restart every (hours)</label>
+                  <input type="number" id="restart-interval" min="1" max="168" value="6">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
       <!-- RIGHT PANEL: PLAYERS CARD + MINI CONSOLE -->
       <div class="right-panel">
         <div class="players-card glass-card tall-card">

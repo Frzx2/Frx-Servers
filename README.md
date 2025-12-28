@@ -17,11 +17,9 @@ This project uses Playit.gg tunneling to make your Minecraft server joinable onl
   - Paper
   - Forge
   - Fabric
-- Automatic server installation and setup
-- Auto-detection of Java and download guidance
+- detection of Java and download guidance
 - Live console with command input
-- Real-time CPU, RAM, and server status monitoring
-- User-friendly editor for server.properties
+- CPU, RAM, and server status monitoring
 - Fully open-source — modify and build your own version
 
 ---
@@ -32,18 +30,10 @@ This project uses Playit.gg tunneling to make your Minecraft server joinable onl
 - Java 17+ recommended  
   (If Java is missing, the app will help you install it)
 - Playit.gg Agent set up before launching  
-  Download: https://playit.gg/
+  Login: https://playit.gg/
 
 ---
-
-### Contributing
-
-This project is open to learn, modify, and improve.  
-Pull requests and issue reports are welcome.
-
----
-
-### License
-
-Frx Servers © 2025 Frzx2  
-Licensed under the BSD 3-Clause License
+## Warnings 
+- App is not completly tested and might not work as expected
+- Frx server is not responsible for any data loss
+- Node intergration Enabled (js version)

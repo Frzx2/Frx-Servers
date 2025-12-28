@@ -3,6 +3,7 @@ Testing/
 *.log
 frx servers -javascript version/node_modules/
 frx servers -javascript version/dist/
+frx servers -javascript version/config.json
 javascript_version/Frx\ Servers/
 .idea/
 .vscode/

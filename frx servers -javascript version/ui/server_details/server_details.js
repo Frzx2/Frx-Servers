@@ -2226,14 +2226,14 @@ function ExecuteAutoRestart() {
   if (isNaN(hours) || hours < 1) hours = 1;
   if (hours > 24) hours = 24;
 
-  const delayMs = hours * 60 * 1000;
+  const delayMs = hours * 60 * 60 * 1000;
 
   appendConsole(`Auto-restart scheduled in ${hours} hour(s)`, "info");
 
   autoRestartTimer = setTimeout(() => {
     appendConsole("Auto-restart triggered", "warn");
 
-    restartServer(); // 🔥 YOUR existing restart function
+    restartServer(); 
 
     // Schedule next restart
     ExecuteAutoRestart();

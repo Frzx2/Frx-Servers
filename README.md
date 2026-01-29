@@ -17,7 +17,6 @@ This project uses Playit.gg tunneling to make your Minecraft server joinable onl
   - Paper
   - Forge
   - Fabric
-- detection of Java and download guidance
 - Live console with command input
 - CPU, RAM, and server status monitoring
 - Fully open-source — modify and build your own version

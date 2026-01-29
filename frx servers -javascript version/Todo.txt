@@ -1,1 +1,15 @@
-OPS UUID not saved 
+node:internal/modules/cjs/loader:664 Uncaught Error: Cannot find module 'D:\Projects\Frx Servers\frx git\Frx-Servers\frx servers -javascript version\dist\win-unpacked\resources\app.asar\node_modules\archiver-utils\node_modules\glob\dist\commonjs\index.js'
+    at createEsmNotFoundErr (node:internal/modules/cjs/loader:1426:15)
+    at finalizeEsmResolution (node:internal/modules/cjs/loader:1415:15)
+    at resolveExports (node:internal/modules/cjs/loader:657:14)
+    at Module._findPath (node:internal/modules/cjs/loader:724:31)
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1376:27)
+    at a._resolveFilename (node:electron/js2c/renderer_init:2:4859)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1032:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1037:22)
+    at Module._load (node:internal/modules/cjs/loader:1199:37)
+    at c._load (node:electron/js2c/node_init:2:17993)
+
+
+We are having this bug which is only on server details menu for now tested out installing 
+server and didnt find any bug and This bug is from archiver and you need to fix it

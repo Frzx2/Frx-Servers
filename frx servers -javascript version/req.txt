@@ -3,3 +3,4 @@ chart.js
 pidusage
 systeminformation
 crypto
+glob

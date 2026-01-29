@@ -13,6 +13,7 @@ const { exec,execSync } = require("child_process");
 const https = require("https");
 const { Rcon } = require("rcon-client");
 const crypto = require("crypto");
+const AdmZip = require("adm-zip");
 // Main Window On closing // 
 
 ipcRenderer.on("app-close", async () => {
@@ -79,7 +80,137 @@ document.addEventListener("DOMContentLoaded", () => {
 
     SaveAutoRestart(); // optional
   });
+  
+  // Server Backup
+  const backupToggle = document.getElementById("backup-toggle");
+  const backupCard = document.getElementById("backup-card");
+  const backupbrowsebtn = document.getElementById("browse-btn")
+  const Takebackupbtn = document.getElementById("Take-backup")
+  const Restorebackupbtn = document.getElementById("Restore-backup")
+  LoadBackup();
 
+  backupbrowsebtn.addEventListener("click", () => {
+    BrowseBackupPath();
+  });
+  
+  Takebackupbtn.addEventListener("click", () => {
+    Takebackup();
+  });
+  
+  Restorebackupbtn.addEventListener("click", () => {
+    RestoreBackup();
+  });
+
+
+  // Initial state (on load)
+  setBackupState(backupToggle.checked);
+
+  // Toggle controls EVERYTHING
+  backupToggle.addEventListener("change", () => {
+    setBackupState(backupToggle.checked);
+  });
+  
+  function setBackupState(enabled) {
+    // Expand / collapse card
+    backupCard.classList.toggle("active", enabled);
+
+  }
+
+  // Server Ram 
+  const ramToggle = document.getElementById("ram-toggle");
+  const ramContent = document.getElementById("ram-content");
+  const ramSlider = document.getElementById("ram-slider");
+  const ramValue = document.getElementById("ram-value");
+  const ramButtons = document.querySelectorAll(".ram-btn");
+
+  const ramCard = document.getElementById("ram-card");
+
+  ramToggle.addEventListener("change", () => {
+  const enabled = ramToggle.checked;
+    ramCard.classList.toggle("active", enabled);
+    ramSlider.disabled = !enabled;
+    });
+
+
+  const infoPath = path.join(serverPath, "server_info.json");
+
+  // Set max RAM from system
+  const totalRamMB = Math.floor(os.totalmem() / (1024 * 1024));
+  ramSlider.max = totalRamMB;
+
+  // Load saved RAM
+  if (fs.existsSync(infoPath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+      if (data.server_ram) {
+        ramSlider.value = data.server_ram;
+        ramValue.textContent = `${data.server_ram} MB`;
+      }
+    } catch {
+      showToast("Failed to load RAM settings", "error");
+    }
+  }
+
+  // Toggle enable/disable
+  ramToggle.addEventListener("change", () => {
+    const enabled = ramToggle.checked;
+    ramContent.classList.toggle("active", enabled);
+    ramSlider.disabled = !enabled;
+  });
+
+  // Slider update
+  ramSlider.addEventListener("input", () => {
+    ramValue.textContent = `${ramSlider.value} MB`;
+    updateSliderBackground(ramSlider);
+  });
+
+  // Preset buttons
+  ramButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      ramSlider.value = btn.dataset.ram;
+      ramValue.textContent = `${btn.dataset.ram} MB`;
+      updateSliderBackground(ramSlider);
+    });
+  });
+
+  updateSliderBackground(ramSlider);
+  document.getElementById("ram-save").addEventListener("click", saveRamSettings);
+
+  //Console Clear function
+  const console_clear_btn = document.getElementById("clear-console-btn")
+  console_clear_btn.addEventListener("click", () => {
+    const consoleBox = document.getElementById("console-output");
+    consoleBox.textContent = "";
+    appendConsole("Logs Cleared", "info");
+
+  })
+  
+  //Server Java
+  const javaToggle = document.getElementById("java-toggle");
+  const javaCard = document.getElementById("java-card");
+  const javaContent = document.getElementById("java-content");
+  const savejava = document.getElementById("save-java");
+  savejava.addEventListener("click", savejavapath);
+
+  const javaPathInput = document.getElementById("java-path-input");
+  const javaList = document.getElementById("java-list");
+  const javaBrowseBtn = document.getElementById("java-browse")
+  javaBrowseBtn.addEventListener("click", Browsejavapath);
+
+  /* Toggle expand */
+  javaToggle.addEventListener("change", async () => {
+    const enabled = javaToggle.checked;
+    javaCard.classList.toggle("active", enabled);
+
+    
+  });
+
+  /* Open dropdown on input click */
+  javaPathInput.addEventListener("click", () => {
+    javaList.classList.toggle("hidden");
+  });
+  loadjava();
+ 
   // 🪶 Initialize Feather icons
   if (typeof feather !== "undefined") {
     feather.replace();
@@ -354,7 +485,7 @@ function toggleButtons(state) {
 
 let isServerRunning = false;
 let serverProcess = null;
-let usageInterval = null;
+
 
 //Starting Server 
 async function startServer() {
@@ -363,15 +494,10 @@ async function startServer() {
   startUptime();
   startGraph();
   
-  const consoleBox = document.getElementById("console-output");
   const baseDir = localStorage.getItem("selectedServerPath");
   const infoPath = path.join(baseDir, "server_info.json");
   const jarPath = path.join(baseDir, "server.jar");
   const propertiesPath = path.join(baseDir, "server.properties");
-  // Reset Console Messages
-  consoleBox.textContent = "";
-  appendConsole("Clearing Logs", "info");
-
   // === Read server_info.json ===
   let serverInfo = {};
   let javaPath = "java";
@@ -542,6 +668,9 @@ try {
       toggleButtons("stopped");
       setServerState("offline");
       stopPlayit();
+      stopPlayerMonitor();
+      stopAutoRestart();
+      isServerRunning = false;
     });
 
     // Make serverProcess globally accessible
@@ -554,6 +683,7 @@ try {
     stopPlayit();
     stopPlayerMonitor();
     setServerState("offline");
+    isServerRunning = false
   }
 }
 // Stoping Server
@@ -561,7 +691,7 @@ async function stopServer() {
   appendConsole("Stopping server...");
   if (!serverProcess || !isServerRunning) {
     appendConsole("No running server process found.");
-    toggleButtons("stopping");
+    toggleButtons("stopped");
     stopPlayerMonitor();
     setServerState("offline");
     return;
@@ -1075,7 +1205,7 @@ function loadServerProperties(serverPath) {
     const propertiesFile = path.join(serverPath, "server.properties");
 
     if (!fs.existsSync(propertiesFile)) {
-      console.error("❌ server.properties not found at:", propertiesFile);
+      appendConsole(`❌ server.properties not found at:, ${propertiesFile}`);
       return;
     }
 
@@ -2109,6 +2239,8 @@ function setupPlayerFilter() {
 }
 
 // === Server Fuctions === //
+
+// == Server Restart == //
 let autoRestartTimer = null;
 
 function LoadAutoRestart() {
@@ -2135,7 +2267,7 @@ function LoadAutoRestart() {
     }
   }
 
-  // ---- Update UI ----
+  // ----Server Functions UI ----
   const restartToggle = document.getElementById("restart-toggle");
   const restartIntervalInput = document.getElementById("restart-interval");
   const restartCard = document.getElementById("restart-card");
@@ -2200,12 +2332,9 @@ function SaveAutoRestart() {
 function ExecuteAutoRestart() {
   const info_path = path.join(serverPath, "server_info.json");
 
-  // Clear any existing timer (safety)
   stopAutoRestart();
 
-  if (!fs.existsSync(info_path)) {
-    return;
-  }
+  if (!fs.existsSync(info_path)) return;
 
   let serverInfo;
   try {
@@ -2215,30 +2344,67 @@ function ExecuteAutoRestart() {
     return;
   }
 
-  // Check if auto restart is enabled
-  if (serverInfo.auto_restart !== true) {
-    return;
-  }
+  if (serverInfo.auto_restart !== true) return;
 
   let hours = parseInt(serverInfo.restart_interval, 10);
-
-  // Validate interval
   if (isNaN(hours) || hours < 1) hours = 1;
   if (hours > 24) hours = 24;
 
   const delayMs = hours * 60 * 60 * 1000;
 
-  appendConsole(`Auto-restart scheduled in ${hours} hour(s)`, "info");
+  appendConsole(`Auto-restart scheduled in ${hours} hour(s)`, "");
 
+  //Restart Warnings
+  scheduleWarning(delayMs - 60_000, "1 minute");
+  scheduleWarning(delayMs - 30_000, "30 seconds");
+  scheduleCountdown(delayMs - 10_000);
+  
+
+  //Scheduleing Restart
   autoRestartTimer = setTimeout(() => {
     appendConsole("Auto-restart triggered", "warn");
-
-    restartServer(); 
-
-    // Schedule next restart
+    restartServer();
     ExecuteAutoRestart();
   }, delayMs);
 }
+
+function scheduleWarning(delay, timeText) {
+  if (delay <= 0) return;
+
+  setTimeout(() => {
+    if (!serverProcess || !isServerRunning) return;
+
+    const msg =
+      `tellraw @a {"text":"Server will restart in ${timeText}","bold":true,"color":"dark_aqua"}`;
+
+    serverProcess.stdin.write(msg + "\n");
+  }, delay);
+}
+
+function scheduleCountdown(delay) {
+  if (delay <= 0) return;
+
+  setTimeout(() => {
+    if (!serverProcess || !isServerRunning) return;
+
+    let count = 10;
+
+    const timer = setInterval(() => {
+      if (!serverProcess || !isServerRunning) {
+        clearInterval(timer);
+        return;
+      }
+
+      const msg =
+        `tellraw @a {"text":" server restarts in ${count}","bold":true,"color":"red"}`;
+      serverProcess.stdin.write(msg + "\n");
+
+      count--;
+      if (count === 0) clearInterval(timer);
+    }, 1000);
+  }, delay);
+}
+
 
 function stopAutoRestart() {
   if (autoRestartTimer !== null) {
@@ -2249,3 +2415,443 @@ function stopAutoRestart() {
 }
 
 
+// ==Server Backup == //
+function LoadBackup() {
+  const infoPath = path.join(serverPath, "server_info.json");
+  const backupInput = document.getElementById("backup-path");
+
+  // Default: empty input
+  backupInput.value = "";
+
+  // If file doesn't exist → stop
+  if (!fs.existsSync(infoPath)) {
+    console.log("server_info.json not found");
+    return;
+  }
+
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+  } catch (err) {
+    console.error("Invalid JSON in server_info.json", err);
+    return;
+  }
+
+  // Check key existence
+  if (!data.BackupPath) {
+    console.log("BackupPath key not found");
+    return;
+  }
+
+  const backupPath = data.BackupPath;
+
+  // Validate folder
+  try {
+    const stat = fs.statSync(backupPath);
+    if (!stat.isDirectory()) {
+      console.log("BackupPath is not a directory");
+      return;
+    }
+  } catch {
+    console.log("BackupPath does not exist");
+    return;
+  }
+
+  //  Valid folder 
+  backupInput.value = backupPath;
+}
+
+async function BrowseBackupPath() {
+  const infoPath = path.join(serverPath, "server_info.json");
+
+  let data = {};
+
+  // Load existing data
+  if (fs.existsSync(infoPath)) {
+    try {
+      data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+    } catch {
+      data = {};
+    }
+  }
+
+  // Save previous value
+  const previousPath = data.BackupPath || "";
+
+  // Open folder dialog
+  const selectedPath = await ipcRenderer.invoke("pick-folder");
+
+  // User pressed cancel so restore previous value
+  if (selectedPath === null) {
+    document.getElementById("backup-path").value = previousPath;
+    return;
+  }
+
+  //  User selected folder 
+  data.BackupPath = selectedPath;
+
+  fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf-8");
+
+  // Update input
+  document.getElementById("backup-path").value = selectedPath;
+
+  LoadBackup();
+}
+
+async function Takebackup() {
+  toggleButtons("starting"); // disable user actions
+
+  try {
+    const infoPath = path.join(serverPath, "server_info.json");
+
+    // === Check if server is running ===
+    if (isServerRunning || serverProcess) {
+      const reply = await showToast(
+        "Server is still running. Stop the server and try backup?",
+        "success",
+        true
+      );
+
+      if (!reply) {
+        showToast("Backup cancelled: server still running", "error");
+        return;
+      }
+
+      await stopServer();
+      await new Promise(res => setTimeout(res, 2000));
+    }
+
+    // === Validate server_info.json ===
+    if (!fs.existsSync(infoPath)) {
+      showToast("Server Info Missing", "error");
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+    } catch {
+      showToast("Server Info Corrupted", "error");
+      return;
+    }
+
+    // === Validate Backup Path ===
+    if (!data.BackupPath || !fs.existsSync(data.BackupPath)) {
+      showToast("Backup path does not exist", "error");
+      return;
+    }
+
+    // === Prepare zip path ===
+    const date = new Date();
+    const timestamp =
+      `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-` +
+      `${String(date.getDate()).padStart(2, "0")}_` +
+      `${String(date.getHours()).padStart(2, "0")}-` +
+      `${String(date.getMinutes()).padStart(2, "0")}-` +
+      `${String(date.getSeconds()).padStart(2, "0")}`;
+
+    const zipFilePath = path.join(
+      data.BackupPath,
+      `backup_${timestamp}.zip`
+    );
+
+    // === UI feedback (NON-BLOCKING) ===
+    showToast("Taking backup, please wait...");
+    appendConsole("📦 Backup started...", "info");
+
+    // === Call MAIN PROCESS ===
+    const result = await ipcRenderer.invoke("take-backup", {
+      serverPath,
+      zipFilePath
+    });
+
+    // === Success ===
+    if (result?.success) {
+      showToast("Backup completed!", "success");
+      appendConsole(`✅ Backup created: ${result.path}`, "success");
+    }
+
+  } catch (err) {
+    console.error("Backup failed:", err);
+    showToast("Backup Failed", "error");
+    appendConsole(`❌ Backup failed: ${err.message}`, "error");
+  } finally {
+    toggleButtons("stopped"); // always restore UI
+  }
+}
+
+
+async function RestoreBackup() {
+  toggleButtons("starting");
+
+  const infoPath = path.join(serverPath, "server_info.json");
+
+  /* ================= HELPER FUNCTIONS ================= */
+
+  const fail = (msg) => {
+    showToast(msg, "error");
+    appendConsole(msg, "error");
+    toggleButtons("stopped");
+  };
+
+  const timeAgo = (date) => {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "Just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hrs ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  };
+
+  /* ================= SERVER RUNNING CHECK ================= */
+
+  if (isServerRunning || serverProcess) {
+    const reply = await showToast(
+      "Server is running. Stop server before restoring backup?",
+      "success",
+      true
+    );
+
+    if (!reply) {
+      fail("Restore cancelled.Server Still Running");
+      return;
+    }
+
+    await stopServer();
+    await new Promise(res => setTimeout(res, 2000));
+  }
+
+  /* ================= LOAD server_info.json ================= */
+
+  if (!fs.existsSync(infoPath)) {
+    fail("Server Info Missing");
+    return;
+  }
+
+  let info;
+  try {
+    info = JSON.parse(fs.readFileSync(infoPath, "utf8"));
+  } catch {
+    fail("Server Info Corrupted");
+    return;
+  }
+
+  if (!info.BackupPath) {
+    fail("BackupPath not found in server_info.json");
+    return;
+  }
+
+  const backupDir = info.BackupPath;
+  if (!fs.existsSync(backupDir)) {
+    fail("Backup directory does not exist");
+    return;
+  }
+
+  /* ================= CREATE POPUP ================= */
+
+  const popup = document.createElement("div");
+  popup.innerHTML = `
+    <div class="restore-overlay">
+      <div class="restore-modal glass-card">
+        <h3>Restore Backup</h3>
+
+        <div class="backup-list"></div>
+
+        <div class="restore-progress hidden">
+          <div class="progress-text">Preparing...</div>
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+        </div>
+
+        <button class="action-btn danger cancel-btn">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const listEl = popup.querySelector(".backup-list");
+  const progressWrap = popup.querySelector(".restore-progress");
+  const progressFill = popup.querySelector(".progress-fill");
+  const progressText = popup.querySelector(".progress-text");
+
+  popup.querySelector(".cancel-btn").onclick = () => {
+    popup.remove();
+    toggleButtons("stopped");
+  };
+
+  /* ================= LIST BACKUPS ================= */
+
+  const backups = fs.readdirSync(backupDir)
+    .filter(f => f.endsWith(".zip"))
+    .map(f => {
+      const full = path.join(backupDir, f);
+      const stat = fs.statSync(full);
+      return { name: f, path: full, time: stat.mtime };
+    })
+    .sort((a, b) => b.time - a.time);
+
+  if (backups.length === 0) {
+    popup.remove();
+    fail("No backups found");
+    return;
+  }
+
+  backups.forEach(b => {
+    const item = document.createElement("div");
+    item.className = "backup-item";
+    item.innerHTML = `
+      <div>
+        <strong>${b.name}</strong>
+        <div class="backup-time">${timeAgo(b.time)}</div>
+      </div>
+      <button class="action-btn">Restore</button>
+    `;
+
+    item.querySelector("button").onclick = async () => {
+      listEl.classList.add("hidden");
+      progressWrap.classList.remove("hidden");
+
+      try {
+        progressText.textContent = "Extracting backup...";
+        progressFill.style.width = "20%";
+
+        const zip = new AdmZip(b.path);
+        const tempDir = path.join(serverPath, "__restore_tmp__");
+
+        if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true });
+        fs.mkdirSync(tempDir);
+
+        zip.extractAllTo(tempDir, true);
+
+        progressFill.style.width = "50%";
+        progressText.textContent = "Replacing world data...";
+
+        const worlds = ["world", "world_nether", "world_the_end"];
+        for (const w of worlds) {
+          const src = path.join(tempDir, w);
+          const dest = path.join(serverPath, w);
+
+          if (fs.existsSync(dest)) fs.rmSync(dest, { recursive: true, force: true });
+          if (fs.existsSync(src)) fs.cpSync(src, dest, { recursive: true });
+        }
+
+        progressFill.style.width = "90%";
+        progressText.textContent = "Cleaning up...";
+
+        fs.rmSync(tempDir, { recursive: true, force: true });
+
+        progressFill.style.width = "100%";
+
+        showToast("Backup restored successfully", "success");
+        appendConsole("Backup restored successfully", "success");
+
+        popup.remove();
+        toggleButtons("stopped");
+
+      } catch (err) {
+        popup.remove();
+        fail("Restore failed: " + err.message);
+      }
+    };
+
+    listEl.appendChild(item);
+  });
+}
+
+// == Server Ram == //
+
+function updateSliderBackground(slider) {
+  const min = slider.min;
+  const max = slider.max;
+  const val = slider.value;
+  const percent = ((val - min) / (max - min)) * 100;
+
+  slider.style.background = `
+    linear-gradient(
+      90deg,
+      var(--accent) ${percent}%,
+      rgba(255,255,255,0.1) ${percent}%
+    )
+  `;
+}
+
+function saveRamSettings() {
+  const ramSlider = document.getElementById("ram-slider");
+  const infoPath = path.join(serverPath, "server_info.json");
+
+  if (!fs.existsSync(infoPath)) {
+    showToast("Server Info Missing", "error");
+    appendConsole("server_info.json missing", "error");
+    return;
+  }
+
+  try {
+    const data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+    data.server_ram = Number(ramSlider.value);
+
+    fs.writeFileSync(infoPath, JSON.stringify(data, null, 2));
+
+    showToast("RAM settings saved", "success");
+    appendConsole(`RAM set to ${ramSlider.value} MB`);
+  } catch (err) {
+    showToast("Failed to save RAM", "error");
+    appendConsole(err.message, "error");
+  }
+}
+
+// == Server Java == //
+
+function loadjava() {
+  const javapath = document.getElementById("java-path-input");
+  const infoPath = path.join(serverPath, "server_info.json");
+
+  let data = {};
+
+  // Load existing data
+  if (fs.existsSync(infoPath)) {
+    try {
+      data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+    } catch {
+      data = {};
+    }
+  }
+  javapath.value = data.java_path || "could not get Java Path"
+}
+async function Browsejavapath(){
+  javainput  = document.getElementById("java-path-input")
+  const javaPath = await ipcRenderer.invoke("pick-java");
+  javainput.value = javaPath
+}
+
+function savejavapath() {
+  const javapath = document.getElementById("java-path-input");
+  if (!javapath) return;
+
+  if (!javapath.value || javapath.value.includes("Select")) {
+    showToast("Please select a Java path first", "warning");
+    return;
+  }
+
+  const infoPath = path.join(serverPath, "server_info.json");
+  let data = {};
+
+  // Load existing data
+  if (fs.existsSync(infoPath)) {
+    try {
+      data = JSON.parse(fs.readFileSync(infoPath, "utf-8"));
+    } catch (err) {
+      console.error("Failed to parse server_info.json", err);
+    }
+  }
+
+  data.java_path = javapath.value;
+
+  try {
+    fs.writeFileSync(infoPath, JSON.stringify(data, null, 2), "utf-8");
+    showToast("Java path saved", "success");
+    appendConsole(`Java path set to: ${javapath.value}`);
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to save Java path", "error");
+  }
+}

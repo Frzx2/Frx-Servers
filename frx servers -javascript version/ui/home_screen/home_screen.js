@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
 const { ipcRenderer } = require("electron");
-const feather = require("feather-icons");
+
 
 let CONFIG_PATH = null;
 const serverListDiv = document.getElementById("server-list");

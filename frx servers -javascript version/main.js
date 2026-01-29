@@ -5,6 +5,7 @@ const { execSync } = require('child_process'); //
 const { existsSync, readdirSync, statSync } = require('fs');
 const { spawn } = require("child_process");
 const dns = require("dns");
+const AdmZip = require("adm-zip");
 let mainWindow;
 
 
@@ -354,6 +355,39 @@ ipcMain.handle("stop-playit", async () => {
   return "No tunnel running";
 });
 
+ // 9.Take Backup
+ipcMain.handle("take-backup", async (event, { serverPath, zipFilePath }) => {
+  try {
+    // Safety checks (never trust renderer fully)
+    if (!serverPath || !zipFilePath) {
+      throw new Error("Invalid backup parameters");
+    }
+
+    if (!fs.existsSync(serverPath)) {
+      throw new Error("Server path does not exist");
+    }
+
+    // Ensure parent directory exists
+    const backupDir = path.dirname(zipFilePath);
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    // Heavy work (BLOCKING → correct place: main process)
+    const zip = new AdmZip();
+    zip.addLocalFolder(serverPath);
+    zip.writeZip(zipFilePath);
+
+    return {
+      success: true,
+      path: zipFilePath
+    };
+
+  } catch (err) {
+    console.error("[BACKUP ERROR]", err);
+    throw err; // sends error back to renderer
+  }
+});
 
 
 // === APP LIFECYCLE ===
